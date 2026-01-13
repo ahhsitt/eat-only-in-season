@@ -1,0 +1,44 @@
+# 应季食谱推荐 AI Agent 后端配置
+
+# 服务配置
+server:
+  port: 8080
+  mode: debug  # debug, release, test
+
+# LLM 配置
+llm:
+  # 可选: openai, deepseek, qwen, ollama
+  provider: openai
+  # OpenAI 配置
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+    model: gpt-4o-mini
+  # DeepSeek 配置
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    model: deepseek-chat
+  # Qwen 配置
+  qwen:
+    api_key: ${DASHSCOPE_API_KEY}
+    model: qwen-turbo
+  # Ollama 配置
+  ollama:
+    host: ${OLLAMA_HOST:-http://localhost:11434}
+    model: llama3
+
+# 图像生成配置
+image:
+  provider: openai
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    model: dall-e-3
+    size: 1024x1024
+    quality: hd
+    style: vivid
+
+# 缓存配置
+cache:
+  recipe_ttl: 1h
+  detail_ttl: 24h
+  image_ttl: 24h

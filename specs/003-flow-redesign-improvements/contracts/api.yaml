@@ -1,0 +1,540 @@
+openapi: 3.0.3
+info:
+  title: 不时不食 API - 流程重构扩展
+  description: 应用流程重构与功能增强的 API 契约
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API 基础路径
+
+paths:
+  /ingredients:
+    post:
+      summary: 获取城市应季食材列表
+      description: 根据用户输入的城市名称，返回该地区当季的应季食材列表，按分类分组
+      operationId: getSeasonalIngredients
+      tags:
+        - 食材
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientsRequest'
+      responses:
+        '200':
+          description: 成功返回应季食材列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientsResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ingredients/{ingredientId}/detail:
+    get:
+      summary: 获取食材详细信息
+      description: 获取指定食材的详细介绍信息（应季原因、营养价值、挑选建议等）
+      operationId: getIngredientDetail
+      tags:
+        - 食材
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 食材唯一标识
+      responses:
+        '200':
+          description: 成功返回食材详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientDetailResponse'
+        '404':
+          description: 食材不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes:
+    post:
+      summary: 获取菜谱推荐列表
+      description: 根据选中的食材和用户偏好，推荐5道相关菜谱
+      operationId: getRecipeRecommendations
+      tags:
+        - 菜谱
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipesRequest'
+      responses:
+        '200':
+          description: 成功返回菜谱列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipesResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}:
+    get:
+      summary: 获取菜谱详情
+      description: 获取指定菜谱的完整信息（食材清单、烹饪步骤等）
+      operationId: getRecipeDetail
+      tags:
+        - 菜谱
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 菜谱唯一标识
+      responses:
+        '200':
+          description: 成功返回菜谱详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDetailResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}/image:
+    get:
+      summary: 获取菜谱图片
+      description: 获取或生成指定菜谱的图片
+      operationId: getRecipeImage
+      tags:
+        - 菜谱
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 菜谱唯一标识
+      responses:
+        '200':
+          description: 成功返回图片 URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 图片生成失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}/pdf:
+    get:
+      summary: 导出菜谱为PDF
+      description: 将指定菜谱导出为 PDF 文件并下载
+      operationId: exportRecipePdf
+      tags:
+        - 菜谱
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 菜谱唯一标识
+      responses:
+        '200':
+          description: 成功返回 PDF 文件
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 文件下载头
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: PDF 生成失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # 请求体
+    IngredientsRequest:
+      type: object
+      required:
+        - city
+      properties:
+        city:
+          type: string
+          maxLength: 100
+          description: 城市或地区名称
+          example: "汕尾"
+
+    RecipesRequest:
+      type: object
+      properties:
+        ingredients:
+          type: array
+          items:
+            type: string
+          description: 选中的食材名称列表（可为空，空则随机推荐）
+          example: ["番茄", "牛肉"]
+        preference:
+          type: string
+          maxLength: 500
+          description: 用户偏好文本
+          example: "不吃辣，清淡口味"
+        location:
+          type: string
+          description: 当前查询的城市（用于随机推荐时参考季节）
+          example: "汕尾"
+
+    # 响应体
+    IngredientsResponse:
+      type: object
+      required:
+        - location
+        - categories
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientCategory'
+          description: 按分类分组的食材列表
+
+    IngredientDetailResponse:
+      type: object
+      required:
+        - ingredient
+      properties:
+        ingredient:
+          $ref: '#/components/schemas/SeasonalIngredientWithDetail'
+
+    RecipesResponse:
+      type: object
+      required:
+        - recipes
+      properties:
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+          maxItems: 5
+          description: 推荐的菜谱列表（最多5道）
+
+    RecipeDetailResponse:
+      type: object
+      required:
+        - recipe
+      properties:
+        recipe:
+          $ref: '#/components/schemas/RecipeDetail'
+
+    ImageResponse:
+      type: object
+      required:
+        - imageUrl
+      properties:
+        imageUrl:
+          type: string
+          format: uri
+          description: 图片 URL
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: 错误码
+        message:
+          type: string
+          description: 错误描述（中文）
+
+    # 数据模型
+    Location:
+      type: object
+      required:
+        - inputName
+        - matchedName
+        - season
+        - month
+      properties:
+        inputName:
+          type: string
+          description: 用户原始输入
+        matchedName:
+          type: string
+          description: AI 匹配的实际城市/地区名
+        country:
+          type: string
+          description: 国家/地区
+        season:
+          type: string
+          enum: [春, 夏, 秋, 冬]
+          description: 当前季节
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: 当前月份
+
+    IngredientCategory:
+      type: object
+      required:
+        - category
+        - ingredients
+      properties:
+        category:
+          type: string
+          enum: [肉类, 蔬菜, 水果, 海鲜, 蛋奶, 其他]
+          description: 食材分类
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonalIngredient'
+
+    SeasonalIngredient:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - briefIntro
+        - seasonMonths
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 唯一标识
+        name:
+          type: string
+          maxLength: 50
+          description: 食材名称
+        category:
+          type: string
+          enum: [肉类, 蔬菜, 水果, 海鲜, 蛋奶, 其他]
+        briefIntro:
+          type: string
+          maxLength: 100
+          description: 简短介绍
+        seasonMonths:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: 应季月份
+
+    SeasonalIngredientWithDetail:
+      allOf:
+        - $ref: '#/components/schemas/SeasonalIngredient'
+        - type: object
+          required:
+            - detailedInfo
+          properties:
+            detailedInfo:
+              $ref: '#/components/schemas/IngredientDetail'
+
+    IngredientDetail:
+      type: object
+      required:
+        - seasonReason
+        - nutrition
+        - selectionTips
+      properties:
+        seasonReason:
+          type: string
+          description: 应季原因
+        nutrition:
+          type: string
+          description: 营养价值
+        selectionTips:
+          type: string
+          description: 挑选建议
+        storageTips:
+          type: string
+          description: 储存建议
+
+    Recipe:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - matchedIngredients
+        - matchCount
+        - cookingTime
+        - difficulty
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          description: 菜谱标题
+        description:
+          type: string
+          maxLength: 200
+          description: 简短描述
+        matchedIngredients:
+          type: array
+          items:
+            type: string
+          description: 匹配的选中食材名称
+        matchCount:
+          type: integer
+          minimum: 0
+          description: 匹配食材数量
+        cookingTime:
+          type: string
+          description: 烹饪时间
+          example: "30分钟"
+        difficulty:
+          type: string
+          enum: [简单, 中等, 复杂]
+        tags:
+          type: array
+          items:
+            type: string
+          description: 标签
+
+    RecipeDetail:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - ingredients
+        - steps
+        - cookingTime
+        - servings
+        - difficulty
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeIngredient'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CookingStep'
+          minItems: 1
+        cookingTime:
+          type: string
+        servings:
+          type: string
+          example: "2-3人份"
+        difficulty:
+          type: string
+          enum: [简单, 中等, 复杂]
+        tags:
+          type: array
+          items:
+            type: string
+        tips:
+          type: string
+          description: 烹饪小贴士
+        imageUrl:
+          type: string
+          format: uri
+
+    RecipeIngredient:
+      type: object
+      required:
+        - name
+        - amount
+      properties:
+        name:
+          type: string
+        amount:
+          type: string
+          example: "200克"
+        note:
+          type: string
+          example: "切丝"
+
+    CookingStep:
+      type: object
+      required:
+        - stepNumber
+        - instruction
+      properties:
+        stepNumber:
+          type: integer
+          minimum: 1
+        instruction:
+          type: string
+        duration:
+          type: string
+          example: "5分钟"
+
+tags:
+  - name: 食材
+    description: 应季食材相关接口
+  - name: 菜谱
+    description: 菜谱推荐和详情相关接口

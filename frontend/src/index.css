@@ -1,0 +1,88 @@
+/* Ant Design UI 升级 - 全局样式 */
+/* Tailwind CSS 已移除，使用 Ant Design 内置样式系统 */
+
+:root {
+  /* 字体 - 系统原生字体栈 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", "Noto Sans SC", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* 背景色 */
+  --color-bg-primary: #FAF7F4;
+  --color-bg-secondary: #F5F0EB;
+  --color-bg-white: #FFFFFF;
+
+  /* 文字色 */
+  --color-text-heading: #2D2D2D;
+  --color-text-body: #666666;
+  --color-text-muted: #999999;
+
+  /* 强调色 - 柔和鼠尾草绿 */
+  --color-accent: #8B9A7D;
+  --color-accent-hover: #7A8A6D;
+  --color-accent-light: #E8EDE4;
+  --color-accent-dark: #6B7A5D;
+
+  /* 功能色 */
+  --color-error: #C45C5C;
+  --color-error-light: #FDF2F2;
+  --color-success: #7A9A6D;
+  --color-success-light: #F2F7F0;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* 过渡 */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --easing: ease-out;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-body);
+}
+
+/* 骨架屏动画 - 作为 Ant Design Skeleton 的补充 */
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-secondary) 25%,
+    var(--color-bg-primary) 50%,
+    var(--color-bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* 全局滚动条优化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}

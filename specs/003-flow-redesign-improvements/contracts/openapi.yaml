@@ -1,0 +1,589 @@
+openapi: 3.0.3
+info:
+  title: 不时不食 (Eat Only In Season) API
+  description: |
+    应季食材与菜谱推荐API - 003流程重构版本
+
+    主要功能:
+    - 根据城市查询应季食材列表
+    - 根据选中食材推荐菜谱
+    - 获取菜谱详情和图片
+    - 导出菜谱PDF
+  version: 2.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+tags:
+  - name: Ingredients
+    description: 应季食材相关接口
+  - name: Recipes
+    description: 菜谱相关接口
+  - name: System
+    description: 系统相关接口
+
+paths:
+  /ingredients:
+    post:
+      tags:
+        - Ingredients
+      summary: 获取城市应季食材列表
+      description: |
+        根据用户输入的城市名称，返回该地区当季的应季食材列表。
+        食材按类别（肉类、蔬菜、水果、海鲜、蛋奶、其他）分组返回。
+      operationId: getSeasonalIngredients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetIngredientsRequest'
+      responses:
+        '200':
+          description: 成功返回应季食材列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetIngredientsResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+
+  /ingredients/{ingredientId}/detail:
+    get:
+      tags:
+        - Ingredients
+      summary: 获取食材详细介绍
+      description: |
+        获取指定食材的详细信息，包括应季原因、营养价值、挑选建议等。
+        以弹窗模态框形式展示给用户。
+      operationId: getIngredientDetail
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          description: 食材ID
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: true
+          description: 食材名称（用于AI生成详情）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回食材详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientDetailResponse'
+        '404':
+          description: 食材不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+
+  /recipes/by-ingredients:
+    post:
+      tags:
+        - Recipes
+      summary: 根据食材获取菜谱推荐
+      description: |
+        根据用户选中的食材列表推荐相关菜谱。
+        采用部分匹配策略，按匹配食材数量降序排列，每次返回5道菜谱。
+        如果未选择任何食材，返回随机的当季菜谱推荐。
+      operationId: getRecipesByIngredients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetRecipesByIngredientsRequest'
+      responses:
+        '200':
+          description: 成功返回菜谱列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRecipesResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+
+  /recipes/{recipeId}/detail:
+    get:
+      tags:
+        - Recipes
+      summary: 获取菜谱详情
+      description: |
+        获取指定菜谱的完整信息，包括食材清单、烹饪步骤、小贴士等。
+      operationId: getRecipeDetail
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱ID
+          schema:
+            type: string
+        - name: title
+          in: query
+          required: true
+          description: 菜谱标题（用于AI生成详情）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回菜谱详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDetailResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+
+  /recipes/{recipeId}/image-url:
+    get:
+      tags:
+        - Recipes
+      summary: 获取菜谱图片
+      description: |
+        获取或生成指定菜谱的图片。
+        图片生成使用精准提示词，确保图片与菜品高度匹配。
+        图片下载后以Base64格式存储在缓存中。
+      operationId: getRecipeImageUrl
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱ID
+          schema:
+            type: string
+        - name: title
+          in: query
+          required: true
+          description: 菜谱标题（用于生成图片提示词）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回图片数据
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 图片生成服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+
+  /recipes/{recipeId}/pdf:
+    post:
+      tags:
+        - Recipes
+      summary: 导出菜谱PDF
+      description: |
+        将指定菜谱导出为PDF格式文件。
+        PDF样式简洁美观，使用文本标记代替emoji。
+      operationId: exportRecipePdf
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportPdfRequest'
+      responses:
+        '200':
+          description: 成功返回PDF文件
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: PDF生成失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /system/health:
+    get:
+      tags:
+        - System
+      summary: 健康检查
+      operationId: healthCheck
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /system/status:
+    get:
+      tags:
+        - System
+      summary: AI服务状态
+      description: 返回各AI服务提供商的可用状态
+      operationId: getSystemStatus
+      responses:
+        '200':
+          description: 服务状态信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatusResponse'
+
+components:
+  schemas:
+    # Request Schemas
+    GetIngredientsRequest:
+      type: object
+      required:
+        - city
+      properties:
+        city:
+          type: string
+          description: 城市或地区名称
+          example: "汕尾"
+          maxLength: 100
+
+    GetRecipesByIngredientsRequest:
+      type: object
+      properties:
+        ingredients:
+          type: array
+          description: 选中的食材名称列表（可为空，表示随机推荐）
+          items:
+            type: string
+          example: ["马鲛鱼", "番茄"]
+        preference:
+          type: string
+          description: 用户偏好描述
+          example: "不吃辣，对海鲜过敏除外"
+          maxLength: 500
+        city:
+          type: string
+          description: 城市名称（用于确定季节）
+          example: "汕尾"
+
+    ExportPdfRequest:
+      type: object
+      required:
+        - recipeDetail
+      properties:
+        recipeDetail:
+          $ref: '#/components/schemas/RecipeDetail'
+        imageBase64:
+          type: string
+          description: Base64编码的图片数据（可选）
+
+    # Response Schemas
+    GetIngredientsResponse:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/Location'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientCategoryGroup'
+
+    IngredientCategoryGroup:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: ["肉类", "蔬菜", "水果", "海鲜", "蛋奶", "其他"]
+          description: 食材分类
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonalIngredient'
+
+    IngredientDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        detail:
+          $ref: '#/components/schemas/IngredientDetail'
+
+    GetRecipesResponse:
+      type: object
+      properties:
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+          maxItems: 5
+
+    RecipeDetailResponse:
+      type: object
+      properties:
+        recipe:
+          $ref: '#/components/schemas/RecipeDetail'
+
+    ImageResponse:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64编码的图片数据
+        contentType:
+          type: string
+          description: 图片MIME类型
+          example: "image/png"
+
+    SystemStatusResponse:
+      type: object
+      properties:
+        llm:
+          type: object
+          properties:
+            available:
+              type: boolean
+            provider:
+              type: string
+              example: "openai"
+        imageGen:
+          type: object
+          properties:
+            available:
+              type: boolean
+            provider:
+              type: string
+              example: "stability"
+
+    # Entity Schemas
+    Location:
+      type: object
+      properties:
+        inputName:
+          type: string
+          description: 用户原始输入
+        matchedName:
+          type: string
+          description: AI匹配的实际城市名
+        country:
+          type: string
+          description: 国家/地区
+        season:
+          type: string
+          enum: ["春", "夏", "秋", "冬"]
+          description: 当前季节
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: 当前月份
+
+    SeasonalIngredient:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 唯一标识
+        name:
+          type: string
+          description: 食材名称
+        category:
+          type: string
+          enum: ["肉类", "蔬菜", "水果", "海鲜", "蛋奶", "其他"]
+        briefIntro:
+          type: string
+          description: 简短介绍（50字内）
+        seasonMonths:
+          type: array
+          items:
+            type: integer
+          description: 应季月份
+
+    IngredientDetail:
+      type: object
+      properties:
+        seasonReason:
+          type: string
+          description: 应季原因
+        nutrition:
+          type: string
+          description: 营养价值
+        selectionTips:
+          type: string
+          description: 挑选建议
+        storageTips:
+          type: string
+          description: 储存建议
+
+    Recipe:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        matchedIngredients:
+          type: array
+          items:
+            type: string
+        matchCount:
+          type: integer
+        cookingTime:
+          type: string
+          example: "30分钟"
+        difficulty:
+          type: string
+          enum: ["简单", "中等", "复杂"]
+        tags:
+          type: array
+          items:
+            type: string
+
+    RecipeDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeIngredient'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CookingStep'
+        cookingTime:
+          type: string
+        servings:
+          type: string
+          example: "2-3人份"
+        difficulty:
+          type: string
+          enum: ["简单", "中等", "复杂"]
+        tags:
+          type: array
+          items:
+            type: string
+        tips:
+          type: string
+
+    RecipeIngredient:
+      type: object
+      properties:
+        name:
+          type: string
+        amount:
+          type: string
+        note:
+          type: string
+
+    CookingStep:
+      type: object
+      properties:
+        stepNumber:
+          type: integer
+        instruction:
+          type: string
+        duration:
+          type: string
+
+    # Error Schemas
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 错误类型
+        message:
+          type: string
+          description: 错误详细信息
+        code:
+          type: integer
+          description: 错误码
+
+    ServiceUnavailableError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "service_unavailable"
+        message:
+          type: string
+          example: "AI服务暂时不可用，请稍后重试"
+        retryAfter:
+          type: integer
+          description: 建议重试时间（秒）
+          example: 60

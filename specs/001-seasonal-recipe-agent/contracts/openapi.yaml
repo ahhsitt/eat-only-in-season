@@ -1,0 +1,652 @@
+openapi: 3.0.3
+info:
+  title: 应季食谱推荐 AI Agent API
+  description: |
+    应季食谱推荐 AI Agent 的 RESTful API。
+
+    功能包括：
+    - 城市识别与季节判断
+    - 应季菜谱推荐
+    - 菜谱详情生成
+    - 图片生成与获取
+    - PDF 导出
+    - AI 服务状态查询
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: 开发环境
+
+tags:
+  - name: city
+    description: 城市识别相关接口
+  - name: recipe
+    description: 菜谱相关接口
+  - name: pdf
+    description: PDF 导出接口
+  - name: system
+    description: 系统状态接口
+
+paths:
+  /city/search:
+    get:
+      tags:
+        - city
+      summary: 搜索城市
+      description: 根据用户输入搜索城市，返回地理信息和当前季节
+      operationId: searchCity
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: 城市名称（支持中文、英文、拼音）
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: "东京"
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitySearchResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 未找到匹配的城市
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes:
+    post:
+      tags:
+        - recipe
+      summary: 获取应季菜谱推荐
+      description: 根据城市、季节和用户偏好，生成 3-5 个应季菜谱推荐
+      operationId: getRecipes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetRecipesRequest'
+      responses:
+        '200':
+          description: 推荐成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetRecipesResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI 服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}:
+    get:
+      tags:
+        - recipe
+      summary: 获取菜谱详情
+      description: 获取指定菜谱的详细信息，包括食材清单和制作步骤
+      operationId: getRecipeDetail
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDetailResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}/image:
+    get:
+      tags:
+        - recipe
+      summary: 获取菜谱图片
+      description: 获取菜谱的 AI 生成图片（Base64 格式）
+      operationId: getRecipeImage
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '202':
+          description: 图片正在生成中
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagePendingResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - recipe
+      summary: 重新生成菜谱图片
+      description: 触发重新生成菜谱图片（用于生成失败后重试）
+      operationId: regenerateRecipeImage
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: 已开始生成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagePendingResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 图像生成服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recipes/{recipeId}/pdf:
+    post:
+      tags:
+        - pdf
+      summary: 导出菜谱 PDF
+      description: 将菜谱导出为 PDF 文件，图片以 Base64 内嵌
+      operationId: exportRecipePdf
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          description: 菜谱 ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportPdfRequest'
+      responses:
+        '200':
+          description: 导出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportPdfResponse'
+        '404':
+          description: 菜谱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 图片尚未生成完成（且要求包含图片）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /system/status:
+    get:
+      tags:
+        - system
+      summary: 获取系统状态
+      description: 获取 AI 服务可用性状态
+      operationId: getSystemStatus
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatusResponse'
+
+  /system/health:
+    get:
+      tags:
+        - system
+      summary: 健康检查
+      description: 服务健康检查端点
+      operationId: healthCheck
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+
+components:
+  schemas:
+    # 城市相关
+    City:
+      type: object
+      required:
+        - name
+        - displayName
+        - latitude
+        - longitude
+      properties:
+        name:
+          type: string
+          description: 城市名称（原始输入）
+          example: "Tokyo"
+        displayName:
+          type: string
+          description: 显示名称
+          example: "东京 (Tokyo)"
+        latitude:
+          type: number
+          format: double
+          description: 纬度
+          example: 35.6762
+        longitude:
+          type: number
+          format: double
+          description: 经度
+          example: 139.6503
+        country:
+          type: string
+          description: 所属国家
+          example: "Japan"
+        timezone:
+          type: string
+          description: 时区
+          example: "Asia/Tokyo"
+
+    Season:
+      type: object
+      required:
+        - id
+        - name
+        - hemisphere
+      properties:
+        id:
+          type: string
+          enum: [spring, summer, autumn, winter]
+          description: 季节标识
+          example: "winter"
+        name:
+          type: string
+          description: 季节名称
+          example: "冬季"
+        hemisphere:
+          type: string
+          enum: [north, south]
+          description: 半球
+          example: "north"
+
+    CitySearchResponse:
+      type: object
+      required:
+        - city
+        - season
+      properties:
+        city:
+          $ref: '#/components/schemas/City'
+        season:
+          $ref: '#/components/schemas/Season'
+
+    # 菜谱相关
+    Recipe:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - imageStatus
+        - cookingTime
+        - difficulty
+        - seasonalIngredients
+        - cuisine
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 菜谱 ID
+        name:
+          type: string
+          description: 菜名
+          example: "红烧狮子头"
+        description:
+          type: string
+          description: 简短描述
+          maxLength: 100
+          example: "经典淮扬菜，肉质鲜嫩，汤汁浓郁"
+        imageBase64:
+          type: string
+          description: 图片 Base64 编码
+        imageStatus:
+          type: string
+          enum: [pending, generating, ready, failed]
+          description: 图片状态
+        cookingTime:
+          type: integer
+          description: 烹饪时间（分钟）
+          example: 45
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+          description: 难度
+        seasonalIngredients:
+          type: array
+          items:
+            type: string
+          description: 应季食材列表
+          example: ["白菜", "萝卜"]
+        cuisine:
+          type: string
+          description: 菜系风格
+          example: "淮扬菜"
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+
+    Ingredient:
+      type: object
+      required:
+        - name
+        - amount
+        - unit
+        - isSeasonal
+      properties:
+        name:
+          type: string
+          description: 食材名称
+          example: "鸡蛋"
+        amount:
+          type: number
+          description: 用量
+          example: 2
+        unit:
+          type: string
+          description: 单位
+          example: "个"
+        isSeasonal:
+          type: boolean
+          description: 是否应季
+
+    CookingStep:
+      type: object
+      required:
+        - order
+        - instruction
+      properties:
+        order:
+          type: integer
+          description: 步骤序号
+          minimum: 1
+          example: 1
+        instruction:
+          type: string
+          description: 步骤说明
+          example: "将猪肉切成小块，加入调料腌制15分钟"
+        duration:
+          type: integer
+          description: 耗时（分钟）
+          example: 15
+        tip:
+          type: string
+          description: 步骤提示
+          example: "肉要顺着纹理切"
+
+    RecipeDetail:
+      type: object
+      required:
+        - recipeId
+        - ingredients
+        - steps
+      properties:
+        recipeId:
+          type: string
+          format: uuid
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CookingStep'
+        tips:
+          type: array
+          items:
+            type: string
+          description: 烹饪小贴士
+
+    # 请求/响应模型
+    GetRecipesRequest:
+      type: object
+      required:
+        - cityName
+      properties:
+        cityName:
+          type: string
+          description: 城市名称
+          example: "成都"
+        preferenceText:
+          type: string
+          description: 用户偏好描述（自然语言，限200字）
+          maxLength: 200
+          example: "我是素食主义者，喜欢清淡口味"
+
+    GetRecipesResponse:
+      type: object
+      required:
+        - city
+        - season
+        - recipes
+      properties:
+        city:
+          $ref: '#/components/schemas/City'
+        season:
+          $ref: '#/components/schemas/Season'
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+          minItems: 3
+          maxItems: 5
+
+    RecipeDetailResponse:
+      type: object
+      required:
+        - recipe
+        - detail
+      properties:
+        recipe:
+          $ref: '#/components/schemas/Recipe'
+        detail:
+          $ref: '#/components/schemas/RecipeDetail'
+
+    ImageResponse:
+      type: object
+      required:
+        - recipeId
+        - status
+        - imageBase64
+      properties:
+        recipeId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ready]
+        imageBase64:
+          type: string
+          description: 图片 Base64 编码
+
+    ImagePendingResponse:
+      type: object
+      required:
+        - recipeId
+        - status
+        - message
+      properties:
+        recipeId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, generating]
+        message:
+          type: string
+          example: "正在为您生成菜品图片，请稍候..."
+
+    ExportPdfRequest:
+      type: object
+      required:
+        - includeImage
+      properties:
+        includeImage:
+          type: boolean
+          description: 是否包含图片
+          default: true
+
+    ExportPdfResponse:
+      type: object
+      required:
+        - fileName
+        - pdfBase64
+      properties:
+        fileName:
+          type: string
+          description: PDF 文件名
+          example: "红烧狮子头_2026-01-08.pdf"
+        pdfBase64:
+          type: string
+          description: PDF 文件 Base64 编码
+
+    # AI 服务状态
+    AIProvider:
+      type: object
+      required:
+        - type
+        - provider
+        - model
+        - available
+        - priority
+      properties:
+        type:
+          type: string
+          enum: [llm, image]
+          description: 服务类型
+        provider:
+          type: string
+          description: 提供商名称
+          example: "OpenAI"
+        model:
+          type: string
+          description: 模型名称
+          example: "gpt-4o-mini"
+        available:
+          type: boolean
+          description: 是否可用
+        priority:
+          type: integer
+          description: 优先级（1 最高）
+          minimum: 1
+
+    SystemStatusResponse:
+      type: object
+      required:
+        - llmProviders
+        - imageProviders
+        - activeLlm
+        - activeImage
+      properties:
+        llmProviders:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIProvider'
+        imageProviders:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIProvider'
+        activeLlm:
+          type: string
+          description: 当前使用的 LLM 提供商
+          example: "OpenAI"
+        activeImage:
+          type: string
+          description: 当前使用的图像生成提供商
+          example: "DALL-E"
+
+    # 错误响应
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: 错误码
+          example: "CITY_NOT_FOUND"
+        message:
+          type: string
+          description: 错误信息
+          example: "未能识别该城市，请尝试输入城市的中文或英文名称"
+        details:
+          type: object
+          description: 额外错误详情
+          additionalProperties: true

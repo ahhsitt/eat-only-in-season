@@ -1,0 +1,6 @@
+/* App.css - 应用级样式（大部分样式已迁移到 index.css 和 Tailwind 类） */
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+}

@@ -241,7 +241,3 @@ export OLLAMA_HOST=http://localhost:11434
 ### 调整缓存配置
 
 修改 `.env` 文件中的 `CACHE_*` 环境变量，或编辑 `backend/internal/cache/` 中的默认配置。
-
-## License
-
-MIT

@@ -102,6 +102,7 @@ backend/data/*.db-wal
 # Speckit (local spec tool state)
 # ===================
 .specify/
+specs/
 
 # ===================
 # Research/temporary documentation (not part of core project)

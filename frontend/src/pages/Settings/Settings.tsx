@@ -1,142 +1,136 @@
-// pages/Settings/Settings.tsx - Settings page for user preferences (Ant Design)
-
+// pages/Settings/Settings.tsx - Neubrutalism v2 Settings
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Typography, Card, Input, Button, Space, message } from 'antd';
+import { Input, message } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '../../components/Layout/Layout';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { colors } from '../../theme';
 
-const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
-
 const MAX_PREFERENCE_LENGTH = 200;
 
 export function Settings() {
   const { preference, updatePreferenceText, clearPreferences } = useLocalStorage();
   const [text, setText] = useState(preference.preferenceText || '');
+  const { t, i18n } = useTranslation();
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    if (value.length <= MAX_PREFERENCE_LENGTH) {
-      setText(value);
-    }
+    if (e.target.value.length <= MAX_PREFERENCE_LENGTH) setText(e.target.value);
   }, []);
 
   const handleSave = useCallback(() => {
     updatePreferenceText(text);
-    message.success('设置已保存');
-  }, [text, updatePreferenceText]);
+    message.success(t('settings.saved'));
+  }, [text, updatePreferenceText, t]);
 
   const handleClear = useCallback(() => {
     clearPreferences();
     setText('');
-    message.info('已清除所有设置');
-  }, [clearPreferences]);
+    message.info(t('settings.cleared'));
+  }, [clearPreferences, t]);
 
   return (
     <Layout showHeader={false} showFooter={true}>
-      {/* Custom Header */}
-      <div
-        style={{
-          background: '#FFFFFF',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-          padding: '16px 24px',
-        }}
-      >
+      {/* Header */}
+      <div style={{ background: colors.candy.yellow, borderBottom: `4px solid ${colors.ink}`, padding: '16px 24px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <Link to="/">
-            <Button type="text" icon={<ArrowLeftOutlined />} style={{ marginBottom: 12 }}>
-              返回首页
-            </Button>
+            <button className="nb-btn-sm" style={{ background: '#fff', padding: '6px 16px', cursor: 'pointer', marginBottom: 12, color: colors.ink }}>
+              <ArrowLeftOutlined /> {t('recipes.backToHome')}
+            </button>
           </Link>
-          <Title level={3} style={{ margin: 0 }}>偏好设置</Title>
-          <Text type="secondary">设置您的口味偏好，获得更个性化的菜谱推荐</Text>
+          <h2 className="font-display" style={{ margin: 0, fontSize: 28, color: colors.ink }}>{t('settings.title')}</h2>
+          <p style={{ color: `${colors.ink}80`, fontWeight: 600, margin: '4px 0 0 0' }}>{t('settings.subtitle')}</p>
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Content */}
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
-        <Card style={{ marginBottom: 24 }}>
-          {/* Preference text input */}
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5}>口味偏好描述</Title>
-            <Paragraph type="secondary" style={{ marginBottom: 8 }}>
-              用自然语言描述您的口味偏好、饮食限制或喜好，例如：
-            </Paragraph>
-            <ul style={{ color: '#999', paddingLeft: 20, marginBottom: 16 }}>
-              <li>"我喜欢清淡口味，不吃辣"</li>
-              <li>"素食主义者，对花生过敏"</li>
-              <li>"偏爱川菜，喜欢麻辣口味"</li>
-              <li>"想要减肥，需要低热量食谱"</li>
-            </ul>
-            <TextArea
-              value={text}
-              onChange={handleTextChange}
-              placeholder="请输入您的口味偏好..."
-              rows={4}
-              showCount
-              maxLength={MAX_PREFERENCE_LENGTH}
-              style={{ marginBottom: 16 }}
-            />
-          </div>
-
-          {/* Buttons */}
-          <Space>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={handleSave}
-            >
-              保存设置
-            </Button>
-            <Button
-              icon={<DeleteOutlined />}
-              onClick={handleClear}
-            >
-              清除所有
-            </Button>
-          </Space>
-        </Card>
-
-        {/* Info card */}
-        <Card
-          style={{
-            backgroundColor: '#F5F0EB',
-            borderColor: '#E5E0DB',
-            marginBottom: 24,
-          }}
-        >
-          <Title level={5} style={{ marginBottom: 12 }}>关于偏好设置</Title>
-          <ul style={{ color: '#666', paddingLeft: 20, margin: 0 }}>
-            <li>您的偏好设置会保存在本地浏览器中</li>
-            <li>偏好信息会发送给 AI 以生成个性化推荐</li>
-            <li>清除偏好后，AI 会给出通用推荐</li>
-            <li>您可以随时修改或清除您的偏好</li>
+        {/* Preference card */}
+        <div className="nb-card" style={{ background: '#fff', padding: 24, marginBottom: 24 }}>
+          <h3 style={{ margin: 0, marginBottom: 8, fontSize: 20, fontWeight: 800, color: colors.ink }}>
+            {t('settings.preferenceTitle')}
+          </h3>
+          <p style={{ color: `${colors.ink}80`, marginBottom: 12 }}>{t('settings.preferenceDesc')}</p>
+          <ul style={{ color: `${colors.ink}80`, paddingLeft: 20, marginBottom: 16 }}>
+            <li>{t('settings.example1')}</li>
+            <li>{t('settings.example2')}</li>
+            <li>{t('settings.example3')}</li>
+            <li>{t('settings.example4')}</li>
           </ul>
-        </Card>
+          <TextArea
+            value={text}
+            onChange={handleTextChange}
+            placeholder={t('settings.placeholder')}
+            rows={4}
+            showCount
+            maxLength={MAX_PREFERENCE_LENGTH}
+            className="nb-input"
+            style={{ marginBottom: 16 }}
+          />
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="nb-btn" onClick={handleSave} style={{ background: colors.candy.green, color: colors.ink, padding: '10px 24px', cursor: 'pointer', fontSize: 16 }}>
+              <SaveOutlined /> {t('settings.save')}
+            </button>
+            <button className="nb-btn" onClick={handleClear} style={{ background: '#fff', color: colors.ink, padding: '10px 24px', cursor: 'pointer', fontSize: 16 }}>
+              <DeleteOutlined /> {t('settings.clear')}
+            </button>
+          </div>
+        </div>
 
-        {/* Current saved city */}
+        {/* Language setting */}
+        <div className="nb-card" style={{ background: colors.candy.cyan + '20', padding: 24, marginBottom: 24 }}>
+          <h3 style={{ margin: 0, marginBottom: 8, fontSize: 20, fontWeight: 800, color: colors.ink }}>
+            🌐 {t('settings.language')}
+          </h3>
+          <p style={{ color: `${colors.ink}80`, marginBottom: 16 }}>{t('settings.languageDesc')}</p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              className={`nb-tag ${i18n.language === 'zh' ? 'selected' : ''}`}
+              onClick={() => i18n.changeLanguage('zh')}
+              style={{ fontSize: 16, padding: '8px 24px' }}
+            >
+              🇨🇳 中文
+            </button>
+            <button
+              className={`nb-tag ${i18n.language === 'en' ? 'selected' : ''}`}
+              onClick={() => i18n.changeLanguage('en')}
+              style={{ fontSize: 16, padding: '8px 24px' }}
+            >
+              🇬🇧 English
+            </button>
+          </div>
+        </div>
+
+        {/* About card */}
+        <div className="nb-card" style={{ background: colors.candy.purple + '15', padding: 24, marginBottom: 24 }}>
+          <h3 style={{ margin: 0, marginBottom: 12, fontSize: 20, fontWeight: 800, color: colors.ink }}>
+            {t('settings.aboutTitle')}
+          </h3>
+          <ul style={{ color: `${colors.ink}CC`, paddingLeft: 20, margin: 0, lineHeight: 2 }}>
+            <li>{t('settings.aboutDesc1')}</li>
+            <li>{t('settings.aboutDesc2')}</li>
+            <li>{t('settings.aboutDesc3')}</li>
+            <li>{t('settings.aboutDesc4')}</li>
+          </ul>
+        </div>
+
+        {/* Saved city */}
         {preference.cityName && (
-          <Card
-            style={{
-              backgroundColor: '#E8EDE4',
-              borderColor: '#D8E3D4',
-            }}
-          >
-            <Space direction="vertical" size={4}>
-              <Space>
-                <EnvironmentOutlined style={{ color: '#6B7A5D' }} />
-                <Text strong style={{ color: '#2D2D2D' }}>当前保存的城市</Text>
-              </Space>
-              <Text style={{ color: '#6B7A5D', fontSize: 16 }}>
-                {preference.cityName}
-              </Text>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                上次更新: {new Date(preference.updatedAt).toLocaleString('zh-CN')}
-              </Text>
-            </Space>
-          </Card>
+          <div className="nb-card" style={{ background: colors.candy.green + '20', padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <EnvironmentOutlined style={{ color: colors.ink, fontSize: 18 }} />
+              <span style={{ fontWeight: 800, color: colors.ink }}>{t('settings.savedCity')}</span>
+            </div>
+            <p style={{ fontSize: 18, fontWeight: 700, color: colors.ink, margin: '0 0 4px 0' }}>
+              {preference.cityName}
+            </p>
+            <span style={{ fontSize: 13, color: `${colors.ink}80` }}>
+              {t('settings.lastUpdated', { date: new Date(preference.updatedAt).toLocaleString(i18n.language === 'zh' ? 'zh-CN' : 'en-US') })}
+            </span>
+          </div>
         )}
       </div>
     </Layout>

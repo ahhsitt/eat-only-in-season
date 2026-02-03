@@ -1,0 +1,31 @@
+{
+  "categories": {
+    "vegetable": "Vegetables",
+    "meat": "Meat",
+    "seafood": "Seafood",
+    "fruit": "Fruits",
+    "dairy": "Eggs & Dairy",
+    "other": "Other"
+  },
+  "seasons": {
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "winter": "Winter"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
+  },
+  "prompts": {
+    "language_instruction": "All output must be in English.",
+    "ingredient_intro": "Here are the recommended seasonal ingredients:",
+    "recipe_intro": "Based on your selected ingredients, here are the recommended recipes:"
+  },
+  "messages": {
+    "no_ingredients": "No seasonal ingredient data available",
+    "no_recipes": "No recipe recommendations available",
+    "loading": "Loading..."
+  }
+}

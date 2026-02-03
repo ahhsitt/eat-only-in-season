@@ -9,6 +9,7 @@ import (
 
 	"github.com/ahhsitt/helloagents-go/pkg/agents"
 	"github.com/ahhsitt/helloagents-go/pkg/core/llm"
+	"github.com/eat-only-in-season/backend/internal/i18n"
 	"github.com/eat-only-in-season/backend/internal/models"
 	"github.com/eat-only-in-season/backend/internal/services/ai"
 	"github.com/eat-only-in-season/backend/pkg/config"
@@ -79,19 +80,19 @@ func (s *Service) initLLM() error {
 }
 
 // GetRecipeRecommendations returns recipe recommendations based on selected ingredients
-func (s *Service) GetRecipeRecommendations(ctx context.Context, req *models.GetRecipesByIngredientsRequest) (*models.GetRecipesByIngredientsResponse, error) {
+func (s *Service) GetRecipeRecommendations(ctx context.Context, req *models.GetRecipesByIngredientsRequest, lang string) (*models.GetRecipesByIngredientsResponse, error) {
 	if !s.provider.HasLLM() {
 		return nil, fmt.Errorf("没有可用的 LLM 服务，请配置 API Key")
 	}
 
-	prompt := s.buildRecipeRecommendationPrompt(req)
+	prompt := s.buildRecipeRecommendationPrompt(req, lang)
 
-	response, err := s.callLLM(ctx, prompt)
+	response, err := s.callLLM(ctx, prompt, lang)
 	if err != nil {
 		return nil, fmt.Errorf("获取菜谱推荐失败: %w", err)
 	}
 
-	result, err := s.parseRecipeRecommendationResponse(response, req.Ingredients)
+	result, err := s.parseRecipeRecommendationResponse(response, req.Ingredients, lang)
 	if err != nil {
 		return nil, fmt.Errorf("解析菜谱推荐响应失败: %w", err)
 	}
@@ -100,19 +101,19 @@ func (s *Service) GetRecipeRecommendations(ctx context.Context, req *models.GetR
 }
 
 // GetRecipeDetail returns detailed recipe information
-func (s *Service) GetRecipeDetail(ctx context.Context, recipeID string, recipeTitle string) (*models.NewRecipeDetail, error) {
+func (s *Service) GetRecipeDetail(ctx context.Context, recipeID string, recipeTitle string, lang string) (*models.NewRecipeDetail, error) {
 	if !s.provider.HasLLM() {
 		return nil, fmt.Errorf("没有可用的 LLM 服务，请配置 API Key")
 	}
 
-	prompt := s.buildRecipeDetailPrompt(recipeTitle)
+	prompt := s.buildRecipeDetailPrompt(recipeTitle, lang)
 
-	response, err := s.callLLM(ctx, prompt)
+	response, err := s.callLLM(ctx, prompt, lang)
 	if err != nil {
 		return nil, fmt.Errorf("获取菜谱详情失败: %w", err)
 	}
 
-	detail, err := s.parseRecipeDetailResponse(response, recipeID, recipeTitle)
+	detail, err := s.parseRecipeDetailResponse(response, recipeID, recipeTitle, lang)
 	if err != nil {
 		return nil, fmt.Errorf("解析菜谱详情响应失败: %w", err)
 	}
@@ -121,75 +122,165 @@ func (s *Service) GetRecipeDetail(ctx context.Context, recipeID string, recipeTi
 }
 
 // buildRecipeRecommendationPrompt builds the prompt for recipe recommendations
-func (s *Service) buildRecipeRecommendationPrompt(req *models.GetRecipesByIngredientsRequest) string {
+func (s *Service) buildRecipeRecommendationPrompt(req *models.GetRecipesByIngredientsRequest, lang string) string {
 	var sb strings.Builder
 
-	sb.WriteString("你是一位专业的美食推荐专家，精通中华料理和各地菜系。\n\n")
-	sb.WriteString("## 任务\n")
-	sb.WriteString("请根据用户选择的食材，推荐5道美味菜谱。\n\n")
+	langInstruction := i18n.GetPrompt(lang, "language_instruction")
+	if langInstruction == "" {
+		langInstruction = "所有输出必须使用简体中文。"
+	}
 
-	sb.WriteString("## 上下文信息\n")
-	if len(req.Ingredients) > 0 {
-		sb.WriteString(fmt.Sprintf("- 用户选择的食材：%s\n", strings.Join(req.Ingredients, "、")))
+	if lang == "en" {
+		sb.WriteString("You are a professional food recommendation expert with expertise in various cuisines.\n\n")
+		sb.WriteString("## Task\n")
+		sb.WriteString("Please recommend 5 delicious recipes based on the user's selected ingredients.\n\n")
+
+		sb.WriteString("## Context\n")
+		if len(req.Ingredients) > 0 {
+			sb.WriteString(fmt.Sprintf("- Selected ingredients: %s\n", strings.Join(req.Ingredients, ", ")))
+		} else {
+			sb.WriteString("- No specific ingredients selected, please recommend popular seasonal recipes\n")
+		}
+		if req.Location != "" {
+			sb.WriteString(fmt.Sprintf("- User location: %s\n", req.Location))
+		}
+		if req.Preference != "" {
+			sb.WriteString(fmt.Sprintf("- User preferences: %s\n", req.Preference))
+		}
+
+		sb.WriteString("\n## Requirements\n")
+		sb.WriteString(fmt.Sprintf("1. %s\n", langInstruction))
+		sb.WriteString("2. Recommend 5 recipes, sorted by number of matched ingredients\n")
+		sb.WriteString("3. Prioritize recipes that use the selected ingredients\n")
+		sb.WriteString("4. Partial matching is allowed\n")
+		sb.WriteString("5. Respect user preferences (e.g., no spicy, light flavor)\n")
+		sb.WriteString("6. Difficulty levels: Easy, Medium, Hard\n\n")
+
+		sb.WriteString("## Output Format\n")
+		sb.WriteString("Please output in JSON format:\n")
+		sb.WriteString("```json\n")
+		sb.WriteString(`{
+  "recipes": [
+    {
+      "title": "Recipe name",
+      "description": "Brief description (under 100 words)",
+      "matchedIngredients": ["ingredient1", "ingredient2"],
+      "cookingTime": "30 minutes",
+      "difficulty": "easy",
+      "tags": ["tag1", "tag2"]
+    }
+  ]
+}
+`)
+		sb.WriteString("```\n")
+		sb.WriteString("\nPlease output JSON only, no additional text.")
 	} else {
-		sb.WriteString("- 用户未选择特定食材，请推荐当季热门菜谱\n")
-	}
-	if req.Location != "" {
-		sb.WriteString(fmt.Sprintf("- 用户所在城市：%s\n", req.Location))
-	}
-	if req.Preference != "" {
-		sb.WriteString(fmt.Sprintf("- 用户偏好：%s\n", req.Preference))
-	}
+		sb.WriteString("你是一位专业的美食推荐专家，精通中华料理和各地菜系。\n\n")
+		sb.WriteString("## 任务\n")
+		sb.WriteString("请根据用户选择的食材，推荐5道美味菜谱。\n\n")
 
-	sb.WriteString("\n## 要求\n")
-	sb.WriteString("1. 所有输出必须使用简体中文\n")
-	sb.WriteString("2. 推荐5道菜谱，按匹配食材数量从多到少排序\n")
-	sb.WriteString("3. 如果用户选择了食材，优先推荐能用到这些食材的菜\n")
-	sb.WriteString("4. 允许部分匹配（即菜谱不必用到所有选择的食材）\n")
-	sb.WriteString("5. 如果用户有偏好（如不吃辣、清淡等），请严格遵守\n")
-	sb.WriteString("6. 难度标注为：简单、中等、复杂\n\n")
+		sb.WriteString("## 上下文信息\n")
+		if len(req.Ingredients) > 0 {
+			sb.WriteString(fmt.Sprintf("- 用户选择的食材：%s\n", strings.Join(req.Ingredients, "、")))
+		} else {
+			sb.WriteString("- 用户未选择特定食材，请推荐当季热门菜谱\n")
+		}
+		if req.Location != "" {
+			sb.WriteString(fmt.Sprintf("- 用户所在城市：%s\n", req.Location))
+		}
+		if req.Preference != "" {
+			sb.WriteString(fmt.Sprintf("- 用户偏好：%s\n", req.Preference))
+		}
 
-	sb.WriteString("## 输出格式\n")
-	sb.WriteString("请以 JSON 格式输出：\n")
-	sb.WriteString("```json\n")
-	sb.WriteString(`{
+		sb.WriteString("\n## 要求\n")
+		sb.WriteString(fmt.Sprintf("1. %s\n", langInstruction))
+		sb.WriteString("2. 推荐5道菜谱，按匹配食材数量从多到少排序\n")
+		sb.WriteString("3. 如果用户选择了食材，优先推荐能用到这些食材的菜\n")
+		sb.WriteString("4. 允许部分匹配（即菜谱不必用到所有选择的食材）\n")
+		sb.WriteString("5. 如果用户有偏好（如不吃辣、清淡等），请严格遵守\n")
+		sb.WriteString("6. 难度标注为：easy、medium、hard\n\n")
+
+		sb.WriteString("## 输出格式\n")
+		sb.WriteString("请以 JSON 格式输出：\n")
+		sb.WriteString("```json\n")
+		sb.WriteString(`{
   "recipes": [
     {
       "title": "菜名",
       "description": "简短描述（100字内）",
       "matchedIngredients": ["匹配的食材1", "匹配的食材2"],
       "cookingTime": "30分钟",
-      "difficulty": "简单",
+      "difficulty": "easy",
       "tags": ["标签1", "标签2"]
     }
   ]
 }
 `)
-	sb.WriteString("```\n")
-	sb.WriteString("\n请只输出 JSON，不要添加其他说明文字。")
+		sb.WriteString("```\n")
+		sb.WriteString("\n请只输出 JSON，不要添加其他说明文字。")
+	}
 
 	return sb.String()
 }
 
 // buildRecipeDetailPrompt builds the prompt for recipe detail
-func (s *Service) buildRecipeDetailPrompt(recipeTitle string) string {
+func (s *Service) buildRecipeDetailPrompt(recipeTitle string, lang string) string {
 	var sb strings.Builder
 
-	sb.WriteString("你是一位专业的厨师和美食作家，擅长编写详细易懂的菜谱教程。\n\n")
-	sb.WriteString("## 任务\n")
-	sb.WriteString(fmt.Sprintf("请为「%s」这道菜生成详细的制作教程。\n\n", recipeTitle))
+	langInstruction := i18n.GetPrompt(lang, "language_instruction")
+	if langInstruction == "" {
+		langInstruction = "所有输出必须使用简体中文。"
+	}
 
-	sb.WriteString("## 要求\n")
-	sb.WriteString("1. 所有输出必须使用简体中文\n")
-	sb.WriteString("2. 食材清单精确到用量（如「鸡蛋 2个」「盐 5克」）\n")
-	sb.WriteString("3. 制作步骤详细清晰，适合厨房新手\n")
-	sb.WriteString("4. 提供实用的烹饪小贴士\n")
-	sb.WriteString("5. 难度标注为：简单、中等、复杂\n\n")
+	if lang == "en" {
+		sb.WriteString("You are a professional chef and food writer, skilled at writing detailed and easy-to-follow recipe tutorials.\n\n")
+		sb.WriteString("## Task\n")
+		sb.WriteString(fmt.Sprintf("Please generate a detailed cooking tutorial for the dish: %s\n\n", recipeTitle))
 
-	sb.WriteString("## 输出格式\n")
-	sb.WriteString("请以 JSON 格式输出：\n")
-	sb.WriteString("```json\n")
-	sb.WriteString(`{
+		sb.WriteString("## Requirements\n")
+		sb.WriteString(fmt.Sprintf("1. %s\n", langInstruction))
+		sb.WriteString("2. Ingredient list should be precise with amounts (e.g., \"2 eggs\", \"5g salt\")\n")
+		sb.WriteString("3. Steps should be clear and detailed, suitable for beginners\n")
+		sb.WriteString("4. Provide practical cooking tips\n")
+		sb.WriteString("5. Difficulty levels: easy, medium, hard\n\n")
+
+		sb.WriteString("## Output Format\n")
+		sb.WriteString("Please output in JSON format:\n")
+		sb.WriteString("```json\n")
+		sb.WriteString(`{
+  "title": "Recipe name",
+  "description": "Detailed description",
+  "ingredients": [
+    {"name": "ingredient name", "amount": "amount", "note": "note (optional)"}
+  ],
+  "steps": [
+    {"stepNumber": 1, "instruction": "step instruction", "duration": "duration (optional)"}
+  ],
+  "cookingTime": "total time",
+  "servings": "2-3 servings",
+  "difficulty": "easy",
+  "tags": ["tag"],
+  "tips": "cooking tips"
+}
+`)
+		sb.WriteString("```\n")
+		sb.WriteString("\nPlease output JSON only, no additional text.")
+	} else {
+		sb.WriteString("你是一位专业的厨师和美食作家，擅长编写详细易懂的菜谱教程。\n\n")
+		sb.WriteString("## 任务\n")
+		sb.WriteString(fmt.Sprintf("请为「%s」这道菜生成详细的制作教程。\n\n", recipeTitle))
+
+		sb.WriteString("## 要求\n")
+		sb.WriteString(fmt.Sprintf("1. %s\n", langInstruction))
+		sb.WriteString("2. 食材清单精确到用量（如「鸡蛋 2个」「盐 5克」）\n")
+		sb.WriteString("3. 制作步骤详细清晰，适合厨房新手\n")
+		sb.WriteString("4. 提供实用的烹饪小贴士\n")
+		sb.WriteString("5. 难度标注为：easy、medium、hard\n\n")
+
+		sb.WriteString("## 输出格式\n")
+		sb.WriteString("请以 JSON 格式输出：\n")
+		sb.WriteString("```json\n")
+		sb.WriteString(`{
   "title": "菜名",
   "description": "详细描述",
   "ingredients": [
@@ -200,22 +291,30 @@ func (s *Service) buildRecipeDetailPrompt(recipeTitle string) string {
   ],
   "cookingTime": "总时长",
   "servings": "2-3人份",
-  "difficulty": "简单",
+  "difficulty": "easy",
   "tags": ["标签"],
   "tips": "烹饪小贴士"
 }
 `)
-	sb.WriteString("```\n")
-	sb.WriteString("\n请只输出 JSON，不要添加其他说明文字。")
+		sb.WriteString("```\n")
+		sb.WriteString("\n请只输出 JSON，不要添加其他说明文字。")
+	}
 
 	return sb.String()
 }
 
 // callLLM calls the LLM with the given prompt
-func (s *Service) callLLM(ctx context.Context, prompt string) (string, error) {
+func (s *Service) callLLM(ctx context.Context, prompt string, lang string) (string, error) {
+	var systemPrompt string
+	if lang == "en" {
+		systemPrompt = "You are a professional food expert. Please output strictly in the required JSON format, all content in English."
+	} else {
+		systemPrompt = "你是一位专业的美食专家。请严格按照要求的JSON格式输出，所有内容使用简体中文。"
+	}
+
 	agent, err := agents.NewSimple(s.llm,
 		agents.WithName("RecipeAgent"),
-		agents.WithSystemPrompt("你是一位专业的美食专家。请严格按照要求的JSON格式输出，所有内容使用简体中文。"),
+		agents.WithSystemPrompt(systemPrompt),
 	)
 	if err != nil {
 		return "", fmt.Errorf("创建 Agent 失败: %w", err)
@@ -234,7 +333,7 @@ func (s *Service) callLLM(ctx context.Context, prompt string) (string, error) {
 }
 
 // parseRecipeRecommendationResponse parses the LLM response
-func (s *Service) parseRecipeRecommendationResponse(response string, selectedIngredients []string) (*models.GetRecipesByIngredientsResponse, error) {
+func (s *Service) parseRecipeRecommendationResponse(response string, selectedIngredients []string, lang string) (*models.GetRecipesByIngredientsResponse, error) {
 	jsonStr := extractJSON(response)
 
 	var raw struct {
@@ -257,6 +356,9 @@ func (s *Service) parseRecipeRecommendationResponse(response string, selectedIng
 	}
 
 	for _, r := range raw.Recipes {
+		// Translate difficulty if needed
+		difficultyDisplay := i18n.GetDifficulty(lang, mapDifficultyToCode(r.Difficulty))
+
 		recipe := models.RecipeWithMatch{
 			ID:                 uuid.New().String(),
 			Title:              r.Title,
@@ -264,7 +366,7 @@ func (s *Service) parseRecipeRecommendationResponse(response string, selectedIng
 			MatchedIngredients: r.MatchedIngredients,
 			MatchCount:         len(r.MatchedIngredients),
 			CookingTime:        r.CookingTime,
-			Difficulty:         r.Difficulty,
+			Difficulty:         difficultyDisplay,
 			Tags:               r.Tags,
 		}
 		result.Recipes = append(result.Recipes, recipe)
@@ -273,8 +375,22 @@ func (s *Service) parseRecipeRecommendationResponse(response string, selectedIng
 	return result, nil
 }
 
+// mapDifficultyToCode maps difficulty display name to code
+func mapDifficultyToCode(name string) string {
+	switch name {
+	case "简单", "easy", "Easy":
+		return "easy"
+	case "中等", "medium", "Medium":
+		return "medium"
+	case "复杂", "困难", "hard", "Hard":
+		return "hard"
+	default:
+		return "medium"
+	}
+}
+
 // parseRecipeDetailResponse parses the LLM response into recipe detail
-func (s *Service) parseRecipeDetailResponse(response string, recipeID string, recipeTitle string) (*models.NewRecipeDetail, error) {
+func (s *Service) parseRecipeDetailResponse(response string, recipeID string, recipeTitle string, lang string) (*models.NewRecipeDetail, error) {
 	jsonStr := extractJSON(response)
 
 	var raw struct {
@@ -301,13 +417,16 @@ func (s *Service) parseRecipeDetailResponse(response string, recipeID string, re
 		return nil, fmt.Errorf("JSON 解析失败: %w", err)
 	}
 
+	// Translate difficulty if needed
+	difficultyDisplay := i18n.GetDifficulty(lang, mapDifficultyToCode(raw.Difficulty))
+
 	detail := &models.NewRecipeDetail{
 		ID:          recipeID,
 		Title:       raw.Title,
 		Description: raw.Description,
 		CookingTime: raw.CookingTime,
 		Servings:    raw.Servings,
-		Difficulty:  raw.Difficulty,
+		Difficulty:  difficultyDisplay,
 		Tags:        raw.Tags,
 		Tips:        raw.Tips,
 		Ingredients: make([]models.RecipeIngredient, 0, len(raw.Ingredients)),

@@ -188,16 +188,16 @@ type ErrorResponse struct {
 
 // --- 003-flow-redesign-improvements: 新增数据模型 ---
 
-// IngredientCategory 食材分类
+// IngredientCategory 食材分类 (code 值，用于 i18n 翻译)
 type IngredientCategory string
 
 const (
-	CategoryMeat      IngredientCategory = "肉类"
-	CategoryVegetable IngredientCategory = "蔬菜"
-	CategoryFruit     IngredientCategory = "水果"
-	CategorySeafood   IngredientCategory = "海鲜"
-	CategoryDairy     IngredientCategory = "蛋奶"
-	CategoryOther     IngredientCategory = "其他"
+	CategoryMeat      IngredientCategory = "meat"
+	CategoryVegetable IngredientCategory = "vegetable"
+	CategoryFruit     IngredientCategory = "fruit"
+	CategorySeafood   IngredientCategory = "seafood"
+	CategoryDairy     IngredientCategory = "dairy"
+	CategoryOther     IngredientCategory = "other"
 )
 
 // Location 用户查询的城市/地区信息

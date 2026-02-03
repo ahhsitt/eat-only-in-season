@@ -1,14 +1,13 @@
-// components/Layout/Layout.tsx - Base layout component using Ant Design
-// 005-page-ui-redesign: 活泼年轻风沉浸式布局
-
-import type { ReactNode, CSSProperties } from 'react';
+// components/Layout/Layout.tsx - Neubrutalism v2 layout
+import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Layout as AntLayout, Menu, Typography } from 'antd';
-import { HomeOutlined, SettingOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { Layout as AntLayout } from 'antd';
+import { MascotLogo } from '../MascotLogo/MascotLogo';
+import { LanguageSwitcher } from '../LanguageSwitcher/LanguageSwitcher';
 import { colors } from '../../theme';
 
-const { Header, Content, Footer } = AntLayout;
-const { Title, Text } = Typography;
+const { Content } = AntLayout;
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,99 +15,70 @@ interface LayoutProps {
   showFooter?: boolean;
 }
 
-// 导航项悬停动画样式
-const navLinkStyle: CSSProperties = {
-  transition: 'color 0.2s ease, transform 0.2s ease',
-};
-
 export function Layout({ children, showHeader = true, showFooter = true }: LayoutProps) {
   const location = useLocation();
-
-  const menuItems = [
-    {
-      key: '/',
-      icon: <HomeOutlined />,
-      label: <Link to="/" style={navLinkStyle}>首页</Link>,
-    },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: <Link to="/settings" style={navLinkStyle}>偏好设置</Link>,
-    },
-  ];
+  const { t } = useTranslation();
 
   return (
-    <AntLayout style={{ minHeight: '100vh', background: colors.neutral[50] }}>
+    <AntLayout style={{ minHeight: '100vh', background: colors.paper }}>
       {showHeader && (
-        <Header
+        <nav
           style={{
-            background: '#FFFFFF',
-            boxShadow: `0 2px 8px rgba(255, 107, 107, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)`,
-            padding: '0 24px',
-            height: 'auto',
-            lineHeight: 'normal',
             position: 'sticky',
             top: 0,
-            zIndex: 100,
+            zIndex: 50,
+            background: colors.candy.yellow,
+            borderBottom: `4px solid ${colors.ink}`,
           }}
         >
           <div
             style={{
               maxWidth: 1152,
               margin: '0 auto',
-              padding: '16px 0',
+              padding: '12px 24px',
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            <Link
-              to="/"
-              style={{
-                textDecoration: 'none',
-                transition: 'transform 0.2s ease',
-              }}
-              className="hover-lift"
-            >
-              <Title
-                level={3}
-                style={{
-                  margin: 0,
-                  color: colors.primary[500],
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  background: `linear-gradient(135deg, ${colors.primary[400]} 0%, ${colors.secondary[400]} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                🍳 不时不食
-              </Title>
-              <Text
-                style={{
-                  color: colors.neutral[500],
-                  display: 'block',
-                  marginTop: 4,
-                  fontSize: 13,
-                }}
-              >
-                发现应季美味，享受健康生活 ✨
-              </Text>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }} className="group">
+              <MascotLogo size={44} />
+              <span className="font-display" style={{ fontSize: 22, color: colors.ink }}>
+                {t('common.appName')}
+              </span>
             </Link>
-            <Menu
-              mode="horizontal"
-              selectedKeys={[location.pathname]}
-              items={menuItems}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                minWidth: 200,
-                justifyContent: 'flex-end',
-              }}
-            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div className="deco-hidden-mobile" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                <Link
+                  to="/"
+                  style={{
+                    color: colors.ink,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    borderBottom: location.pathname === '/' ? `3px solid ${colors.candy.pink}` : '3px solid transparent',
+                    paddingBottom: 2,
+                  }}
+                >
+                  {t('nav.discover')}
+                </Link>
+                <Link
+                  to="/settings"
+                  style={{
+                    color: colors.ink,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    borderBottom: location.pathname === '/settings' ? `3px solid ${colors.candy.pink}` : '3px solid transparent',
+                    paddingBottom: 2,
+                  }}
+                >
+                  {t('nav.settings')}
+                </Link>
+              </div>
+              <LanguageSwitcher />
+            </div>
           </div>
-        </Header>
+        </nav>
       )}
 
       <Content style={{ flex: 1 }}>
@@ -116,27 +86,42 @@ export function Layout({ children, showHeader = true, showFooter = true }: Layou
       </Content>
 
       {showFooter && (
-        <Footer
-          style={{
-            textAlign: 'center',
-            background: `linear-gradient(180deg, transparent 0%, ${colors.primary[50]} 100%)`,
-            color: colors.neutral[500],
-            fontSize: 14,
-            padding: '32px 24px',
-          }}
-        >
-          <div style={{ marginBottom: 8 }}>
-            <span style={{ color: colors.primary[400], fontWeight: 500 }}>
-              🍳 不时不食
-            </span>
-            <span style={{ margin: '0 8px', color: colors.neutral[300] }}>|</span>
-            <span>应季食谱推荐 AI Agent</span>
+        <footer style={{ background: colors.candy.purple, padding: '36px 24px' }}>
+          <div
+            style={{
+              maxWidth: 1152,
+              margin: '0 auto',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <MascotLogo size={36} />
+              <span className="font-display" style={{ fontSize: 20, color: '#FFFFFF' }}>
+                {t('common.appName')}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>{t('common.about')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>{t('common.features')}</span>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 14, margin: 0 }}>
+              © 2025 {t('common.footer')} 💛
+            </p>
           </div>
-          <Text style={{ fontSize: 12, color: colors.neutral[400] }}>
-            吃得健康，活得精彩 💪
-          </Text>
-        </Footer>
+        </footer>
       )}
+
+      {/* Decorative background elements */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }} className="deco-hidden-mobile">
+        <div className="deco-star animate-spin-slow" style={{ position: 'absolute', top: 80, left: 40, width: 32, height: 32, background: colors.candy.pink, opacity: 0.5 }} />
+        <div className="animate-bounce-slow" style={{ position: 'absolute', top: 160, right: 80, width: 24, height: 24, background: colors.candy.cyan, borderRadius: '50%', opacity: 0.5 }} />
+        <div className="deco-star animate-wiggle" style={{ position: 'absolute', top: 240, left: '25%', width: 40, height: 40, background: colors.candy.yellow, opacity: 0.4 }} />
+        <div className="animate-float" style={{ position: 'absolute', bottom: 160, right: '33%', width: 32, height: 32, background: colors.candy.purple, borderRadius: '50%', opacity: 0.4 }} />
+      </div>
     </AntLayout>
   );
 }

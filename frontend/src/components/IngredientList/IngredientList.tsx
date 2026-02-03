@@ -1,13 +1,8 @@
-// components/IngredientList/IngredientList.tsx - 按分类展示应季食材的组件 (Ant Design)
-// 005-page-ui-redesign: 活力食材选择体验
-
-import { useState } from 'react';
-import { Card, Checkbox, Collapse, Tag, Empty, Row, Col, Typography, Skeleton, Space } from 'antd';
-import { CheckOutlined, DownOutlined } from '@ant-design/icons';
+// components/IngredientList/IngredientList.tsx - Neubrutalism v2 ingredient cards
+import { useTranslation } from 'react-i18next';
+import { Empty, Skeleton } from 'antd';
 import { colors, categoryColors } from '../../theme';
-import type { IngredientCategoryGroup } from '../../types';
-
-const { Text } = Typography;
+import type { IngredientCategoryGroup, IngredientCategory } from '../../types';
 
 interface IngredientListProps {
   categories: IngredientCategoryGroup[];
@@ -16,14 +11,14 @@ interface IngredientListProps {
   loading?: boolean;
 }
 
-// 分类图标映射
-const categoryIcons: Record<string, string> = {
-  '肉类': '🥩',
-  '蔬菜': '🥬',
-  '水果': '🍎',
-  '海鲜': '🦐',
-  '蛋奶': '🥚',
-  '其他': '🍚',
+// Map category code to emoji
+const categoryIcons: Record<IngredientCategory, string> = {
+  meat: '🥩',
+  vegetable: '🥬',
+  fruit: '🍎',
+  seafood: '🐟',
+  dairy: '🥚',
+  other: '🍚',
 };
 
 export function IngredientList({
@@ -32,9 +27,7 @@ export function IngredientList({
   onSelectionChange,
   loading = false,
 }: IngredientListProps) {
-  const [activeKeys, setActiveKeys] = useState<string[]>(
-    categories.map(c => c.category)
-  );
+  const { t } = useTranslation();
 
   const toggleIngredient = (ingredientName: string) => {
     if (selectedIngredients.includes(ingredientName)) {
@@ -44,218 +37,121 @@ export function IngredientList({
     }
   };
 
-  const isSelected = (ingredientName: string) => selectedIngredients.includes(ingredientName);
+  const isSelected = (name: string) => selectedIngredients.includes(name);
 
-  // 获取分类颜色
-  const getCategoryColor = (category: string) => {
-    return categoryColors[category] || {
-      bg: colors.neutral[100],
-      text: colors.neutral[700],
-      border: colors.neutral[300],
-    };
+  const getCatColor = (category: IngredientCategory) => {
+    return categoryColors[category] || categoryColors.default;
   };
 
-  // 加载状态
+  // Get translated category name
+  const getCategoryName = (category: IngredientCategory): string => {
+    return t(`categories.${category}`);
+  };
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
         {[1, 2, 3].map(i => (
-          <Card key={i}>
-            <Skeleton active paragraph={{ rows: 2 }} />
-          </Card>
+          <div key={i} className="nb-card" style={{ padding: 24, background: '#fff' }}>
+            <Skeleton active paragraph={{ rows: 3 }} />
+          </div>
         ))}
       </div>
     );
   }
 
-  // 空状态
   if (categories.length === 0) {
-    return (
-      <Empty
-        description="暂无应季食材数据"
-        style={{ padding: '48px 0' }}
-      />
-    );
+    return <Empty description={t('ingredients.noData')} style={{ padding: '48px 0' }} />;
   }
 
-  const collapseItems = categories.map((categoryGroup, categoryIndex) => {
-    const catColor = getCategoryColor(categoryGroup.category);
-
-    return {
-      key: categoryGroup.category,
-      label: (
-        <Space
-          className="animate-slideUp"
-          style={{ animationDelay: `${categoryIndex * 0.05}s` }}
-        >
-          <span
-            style={{
-              fontSize: 24,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              backgroundColor: catColor.bg,
-            }}
-          >
-            {categoryIcons[categoryGroup.category] || '📦'}
-          </span>
-          <Text strong style={{ fontSize: 16, color: catColor.text }}>
-            {categoryGroup.category}
-          </Text>
-          <Tag
-            style={{
-              backgroundColor: catColor.bg,
-              color: catColor.text,
-              borderColor: catColor.border,
-              borderRadius: 12,
-            }}
-          >
-            {categoryGroup.ingredients.length}种
-          </Tag>
-        </Space>
-      ),
-      children: (
-        <Row gutter={[16, 16]}>
-          {categoryGroup.ingredients.map((ingredient, index) => {
-            const selected = isSelected(ingredient.name);
-
-            return (
-              <Col
-                key={ingredient.id}
-                xs={12}
-                sm={8}
-                md={6}
-                className="animate-fadeIn"
-                style={{
-                  animationDelay: `${index * 0.03}s`,
-                  opacity: 0,
-                  animationFillMode: 'forwards',
-                }}
-              >
-                <Card
-                  size="small"
-                  hoverable
-                  onClick={() => toggleIngredient(ingredient.name)}
-                  className={`hover-lift ${selected ? 'select-bounce selected' : 'select-bounce'}`}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Category cards grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
+        {categories.map((categoryGroup) => {
+          const catColor = getCatColor(categoryGroup.category);
+          return (
+            <div
+              key={categoryGroup.category}
+              className="nb-card"
+              style={{
+                background: catColor.bg,
+                padding: 24,
+              }}
+            >
+              {/* Category header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <div
                   style={{
-                    borderColor: selected ? colors.primary[400] : catColor.border,
-                    backgroundColor: selected ? colors.primary[50] : '#FFFFFF',
-                    cursor: 'pointer',
-                    height: '100%',
+                    width: 56,
+                    height: 56,
+                    background: catColor.candy,
                     borderRadius: 16,
-                    borderWidth: selected ? 2 : 1,
-                    transition: 'all 0.2s ease',
-                  }}
-                  styles={{
-                    body: { padding: 16 }
+                    border: `3px solid ${colors.ink}`,
+                    boxShadow: `3px 3px 0px ${colors.ink}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 28,
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Text
-                      strong
-                      style={{
-                        flex: 1,
-                        paddingRight: 8,
-                        color: selected ? colors.primary[600] : colors.neutral[800],
-                        fontSize: 15,
-                      }}
-                    >
-                      {ingredient.name}
-                    </Text>
-                    <Checkbox
-                      checked={selected}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => toggleIngredient(ingredient.name)}
-                      style={{
-                        transform: selected ? 'scale(1.1)' : 'scale(1)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    />
-                  </div>
-                  <Text
+                  {categoryIcons[categoryGroup.category] || '📦'}
+                </div>
+                <div>
+                  <h4 className="font-display" style={{ margin: 0, fontSize: 20, color: colors.ink }}>
+                    {getCategoryName(categoryGroup.category)}
+                  </h4>
+                  <span style={{ fontSize: 14, color: `${colors.ink}99`, fontWeight: 700 }}>
+                    {categoryGroup.ingredients.length} {t('ingredients.seasonal')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ingredient tags */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {categoryGroup.ingredients.map((ingredient) => (
+                  <button
+                    key={ingredient.id}
+                    className={`nb-tag ${isSelected(ingredient.name) ? 'selected' : ''}`}
+                    onClick={() => toggleIngredient(ingredient.name)}
                     style={{
-                      fontSize: 12,
-                      color: colors.neutral[500],
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      marginTop: 8,
+                      background: isSelected(ingredient.name) ? colors.candy.yellow : '#FFFFFF',
                     }}
                   >
-                    {ingredient.briefIntro}
-                  </Text>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      ),
-    };
-  });
+                    {ingredient.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Collapse
-        activeKey={activeKeys}
-        onChange={(keys) => setActiveKeys(keys as string[])}
-        expandIcon={({ isActive }) => (
-          <DownOutlined
-            rotate={isActive ? 180 : 0}
-            style={{
-              color: colors.primary[400],
-              transition: 'transform 0.3s ease',
-            }}
-          />
-        )}
-        items={collapseItems}
-        style={{
-          background: 'transparent',
-          border: 'none',
-        }}
-        expandIconPosition="end"
-      />
-
-      {/* 已选食材展示 - 活力风格 */}
+      {/* Selected summary */}
       {selectedIngredients.length > 0 && (
-        <Card
-          size="small"
-          className="animate-slideUp"
+        <div
+          className="nb-card"
           style={{
-            background: `linear-gradient(135deg, ${colors.primary[50]} 0%, ${colors.secondary[50]} 100%)`,
-            borderColor: colors.primary[200],
-            borderRadius: 16,
+            background: colors.candy.yellow + '40',
+            padding: 20,
           }}
         >
-          <Space wrap size={[8, 8]}>
-            <Text style={{ color: colors.primary[600], fontWeight: 500 }}>
-              <CheckOutlined style={{ marginRight: 6 }} />
-              已选择 {selectedIngredients.length} 种食材：
-            </Text>
-            {selectedIngredients.map((name, index) => (
-              <Tag
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 800, color: colors.ink, marginRight: 4 }}>
+              ✅ {t('ingredients.selected', { count: selectedIngredients.length })}
+            </span>
+            {selectedIngredients.map((name) => (
+              <button
                 key={name}
-                closable
-                onClose={() => toggleIngredient(name)}
-                className="animate-bounceIn"
-                style={{
-                  animationDelay: `${index * 0.05}s`,
-                  backgroundColor: colors.primary[100],
-                  color: colors.primary[600],
-                  borderColor: colors.primary[300],
-                  borderRadius: 12,
-                  padding: '4px 12px',
-                  fontSize: 13,
-                }}
+                className="nb-tag selected"
+                onClick={() => toggleIngredient(name)}
+                style={{ fontSize: 13 }}
               >
-                {name}
-              </Tag>
+                {name} ✕
+              </button>
             ))}
-          </Space>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 // services/api.ts - API service client using Axios
 
 import axios, { AxiosError } from 'axios';
+import i18n from '../i18n';
 import type {
   CitySearchResponse,
   ExportPDFRequest,
@@ -25,6 +26,14 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Add request interceptor to set Accept-Language header
+api.interceptors.request.use((config) => {
+  // Get current language from i18n
+  const lang = i18n.language || 'zh';
+  config.headers['Accept-Language'] = lang;
+  return config;
 });
 
 // Error handler helper

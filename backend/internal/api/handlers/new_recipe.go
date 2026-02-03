@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/eat-only-in-season/backend/internal/cache"
+	"github.com/eat-only-in-season/backend/internal/i18n"
 	"github.com/eat-only-in-season/backend/internal/models"
 	"github.com/eat-only-in-season/backend/internal/services/recipe"
 	"github.com/gin-gonic/gin"
@@ -38,8 +39,11 @@ func (h *NewFlowRecipeHandler) GetRecipesByIngredients(c *gin.Context) {
 		return
 	}
 
-	// 生成缓存键：排序后的食材列表 + 偏好
-	cacheKey := h.buildRecipesCacheKey(req.Ingredients, req.Preference)
+	// Get language from context
+	lang := i18n.GetLang(c)
+
+	// 生成缓存键：语言 + 排序后的食材列表 + 偏好
+	cacheKey := h.buildRecipesCacheKey(req.Ingredients, req.Preference, lang)
 
 	// 尝试从双层缓存获取
 	if cache.DefaultManager != nil {
@@ -61,7 +65,7 @@ func (h *NewFlowRecipeHandler) GetRecipesByIngredients(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.GetRecipeRecommendations(c.Request.Context(), &req)
+	result, err := h.service.GetRecipeRecommendations(c.Request.Context(), &req, lang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "GENERATION_FAILED",
@@ -83,13 +87,13 @@ func (h *NewFlowRecipeHandler) GetRecipesByIngredients(c *gin.Context) {
 }
 
 // buildRecipesCacheKey 生成菜谱推荐缓存键
-func (h *NewFlowRecipeHandler) buildRecipesCacheKey(ingredients []string, preference string) string {
+func (h *NewFlowRecipeHandler) buildRecipesCacheKey(ingredients []string, preference string, lang string) string {
 	// 排序食材以保证一致性
 	sorted := make([]string, len(ingredients))
 	copy(sorted, ingredients)
 	sort.Strings(sorted)
 
-	key := "recipes:" + strings.Join(sorted, ",")
+	key := lang + ":recipes:" + strings.Join(sorted, ",")
 	if preference != "" {
 		key += ":" + preference
 	}
@@ -117,8 +121,11 @@ func (h *NewFlowRecipeHandler) GetNewRecipeDetail(c *gin.Context) {
 		return
 	}
 
-	// 生成缓存键
-	cacheKey := cache.RecipeDetailKey(recipeID)
+	// Get language from context
+	lang := i18n.GetLang(c)
+
+	// 生成缓存键（包含语言）
+	cacheKey := lang + ":" + cache.RecipeDetailKey(recipeID)
 
 	// 尝试从双层缓存获取
 	if cache.DefaultManager != nil {
@@ -142,7 +149,7 @@ func (h *NewFlowRecipeHandler) GetNewRecipeDetail(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.GetRecipeDetail(c.Request.Context(), recipeID, recipeTitle)
+	result, err := h.service.GetRecipeDetail(c.Request.Context(), recipeID, recipeTitle, lang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "GENERATION_FAILED",

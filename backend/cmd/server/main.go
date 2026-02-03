@@ -5,10 +5,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/eat-only-in-season/backend/internal/api"
 	"github.com/eat-only-in-season/backend/internal/cache"
+	"github.com/eat-only-in-season/backend/internal/i18n"
 	"github.com/eat-only-in-season/backend/pkg/config"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -22,6 +24,13 @@ func main() {
 
 	// 加载配置
 	cfg := config.Load()
+
+	// 初始化 i18n 模块
+	localesDir := filepath.Join("locales")
+	if err := i18n.Init(localesDir, "zh"); err != nil {
+		log.Fatalf("初始化 i18n 模块失败: %v", err)
+	}
+	log.Printf("i18n 模块已初始化，支持语言: %v", i18n.SupportedLanguages())
 
 	// 设置 Gin 模式
 	if cfg.GinMode != "" {

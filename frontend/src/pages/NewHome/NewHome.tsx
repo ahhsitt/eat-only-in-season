@@ -1,10 +1,8 @@
-// pages/NewHome/NewHome.tsx - 新版首页：城市 → 食材 → 菜谱流程 (Ant Design)
-// 005-page-ui-redesign: 沉浸式首页搜索体验
-
+// pages/NewHome/NewHome.tsx - Neubrutalism v2 Home Page
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Typography, Card, Input, Button, Alert, Space, Row, Col, Empty, Divider } from 'antd';
-import { EnvironmentOutlined, CalendarOutlined, SearchOutlined, HeartOutlined } from '@ant-design/icons';
+import { Input, Alert, Empty } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '../../components/Layout/Layout';
 import { CityInput } from '../../components/CityInput/CityInput';
 import { IngredientList } from '../../components/IngredientList/IngredientList';
@@ -14,25 +12,18 @@ import { colors } from '../../theme';
 import type { Location, IngredientCategoryGroup, NewUserPreference } from '../../types';
 import { PREFERENCES_STORAGE_KEY } from '../../types';
 
-const { Title, Text } = Typography;
-
 export function NewHome() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // localStorage 偏好
   const [preference, setPreference] = useState<NewUserPreference>(() => {
     try {
       const stored = localStorage.getItem(PREFERENCES_STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      console.error('Error reading preferences:', e);
-    }
+      if (stored) return JSON.parse(stored);
+    } catch (e) { console.error('Error reading preferences:', e); }
     return { preferenceText: '', updatedAt: Date.now() };
   });
 
-  // 状态管理
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -40,60 +31,54 @@ export function NewHome() {
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [currentCity, setCurrentCity] = useState(preference.lastCity || '');
 
-  // 保存偏好到 localStorage
   const savePreference = useCallback((updates: Partial<NewUserPreference>) => {
     setPreference(prev => {
       const updated = { ...prev, ...updates, updatedAt: Date.now() };
-      try {
-        localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.error('Error saving preferences:', e);
-      }
+      try { localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(updated)); }
+      catch (e) { console.error('Error saving preferences:', e); }
       return updated;
     });
   }, []);
 
-  // 搜索城市食材
   const handleCitySearch = useCallback(async (cityName: string) => {
     setIsLoading(true);
     setError(null);
     setCategories([]);
     setSelectedIngredients([]);
     setCurrentCity(cityName);
-
     try {
       const response = await getSeasonalIngredients(cityName);
       setLocation(response.location);
       setCategories(response.categories);
       savePreference({ lastCity: cityName });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取应季食材失败');
+      setError(err instanceof Error ? err.message : t('common.fetchFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [savePreference]);
+  }, [savePreference, t]);
 
-  // 跳转到菜谱列表
   const handleGetRecipes = useCallback(() => {
     const params = new URLSearchParams();
-    if (selectedIngredients.length > 0) {
-      params.set('ingredients', selectedIngredients.join(','));
-    }
-    if (preference.preferenceText) {
-      params.set('preference', preference.preferenceText);
-    }
-    if (currentCity) {
-      params.set('location', currentCity);
-    }
+    if (selectedIngredients.length > 0) params.set('ingredients', selectedIngredients.join(','));
+    if (preference.preferenceText) params.set('preference', preference.preferenceText);
+    if (currentCity) params.set('location', currentCity);
     navigate(`/recipes?${params.toString()}`);
   }, [selectedIngredients, preference.preferenceText, currentCity, navigate]);
 
+  // Quick city tags
+  const quickCities = [
+    { emoji: '🏙️', key: 'beijing', name: t('cities.beijing') },
+    { emoji: '🌆', key: 'shanghai', name: t('cities.shanghai') },
+    { emoji: '🌴', key: 'guangzhou', name: t('cities.guangzhou') },
+    { emoji: '🐼', key: 'chengdu', name: t('cities.chengdu') },
+  ];
+
   return (
     <Layout showHeader={true} showFooter={true}>
-      {/* 沉浸式 HeroSection 欢迎区 */}
+      {/* Hero Section - No Results */}
       {!location && !isLoading && (
         <section
-          className="animate-fadeIn"
           style={{
             minHeight: 'calc(100vh - 200px)',
             display: 'flex',
@@ -101,48 +86,34 @@ export function NewHome() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '48px 24px',
-            background: `linear-gradient(180deg, ${colors.neutral[50]} 0%, ${colors.primary[50]} 50%, ${colors.secondary[50]} 100%)`,
+            background: `linear-gradient(180deg, ${colors.paper} 0%, ${colors.candy.yellow}30 50%, ${colors.candy.pink}15 100%)`,
+            position: 'relative',
           }}
         >
-          {/* 品牌标语 */}
-          <div className="animate-slideUp" style={{ textAlign: 'center', marginBottom: 48 }}>
-            <Title
-              level={1}
-              style={{
-                fontSize: 'clamp(2rem, 6vw, 3.5rem)',
-                fontWeight: 800,
-                marginBottom: 16,
-                background: `linear-gradient(135deg, ${colors.primary[400]} 0%, ${colors.secondary[400]} 50%, ${colors.accent[400]} 100%)`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              🍳 不时不食
-            </Title>
-            <Text
-              style={{
-                fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-                color: colors.neutral[600],
-                display: 'block',
-              }}
-            >
-              吃当季，最新鲜 ✨
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: colors.neutral[500],
-                display: 'block',
-                marginTop: 8,
-              }}
-            >
-              输入城市，发现应季美味，享受健康生活
-            </Text>
+          {/* Badge */}
+          <div className="nb-badge" style={{ background: colors.candy.cyan, color: colors.ink, marginBottom: 24 }}>
+            <span style={{ fontSize: 20 }}>✨</span>
+            <span>{t('home.badge')}</span>
           </div>
 
-          {/* 搜索框 - 视觉中心 */}
-          <div className="animate-slideUp stagger-2" style={{ width: '100%', maxWidth: 560 }}>
+          {/* Headline */}
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <h1 style={{ margin: 0 }}>
+              <span className="font-display" style={{ fontSize: 'clamp(3rem, 8vw, 5rem)', color: colors.ink, display: 'block', lineHeight: 1.1 }}>
+                {t('home.headline1')}
+              </span>
+              <span className="font-display" style={{ fontSize: 'clamp(3rem, 8vw, 5rem)', display: 'block', lineHeight: 1.1, marginTop: 8 }}>
+                <span className="squiggle" style={{ color: colors.candy.pink }}>{t('home.headline2')}</span>
+                <span className="animate-bounce-slow" style={{ display: 'inline-block', marginLeft: 12 }}>🍅</span>
+              </span>
+            </h1>
+            <p style={{ fontSize: 20, color: `${colors.ink}CC`, fontWeight: 500, maxWidth: 480, margin: '20px auto 0', lineHeight: 1.6 }}>
+              {t('home.subtitle')}
+            </p>
+          </div>
+
+          {/* Search */}
+          <div style={{ width: '100%', maxWidth: 560, marginBottom: 16 }}>
             <CityInput
               initialValue={preference.lastCity}
               onSearch={handleCitySearch}
@@ -151,139 +122,101 @@ export function NewHome() {
             />
           </div>
 
-          {/* 偏好设置卡片 */}
-          <div className="animate-slideUp stagger-3" style={{ width: '100%', maxWidth: 560, marginTop: 24 }}>
-            <Card
-              size="small"
-              className="hover-lift"
-              style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(10px)',
-                borderColor: colors.primary[100],
-                borderRadius: 16,
-              }}
-            >
-              <Space direction="vertical" style={{ width: '100%' }} size={8}>
-                <Space>
-                  <HeartOutlined style={{ color: colors.primary[400] }} />
-                  <Text strong style={{ color: colors.neutral[700] }}>
-                    口味偏好（可选）
-                  </Text>
-                </Space>
-                <Input
-                  value={preference.preferenceText}
-                  onChange={(e) => savePreference({ preferenceText: e.target.value })}
-                  placeholder="如：不吃辣、清淡口味、素食..."
-                  maxLength={500}
-                  style={{
-                    borderColor: colors.primary[200],
-                    borderRadius: 12,
-                  }}
-                />
-              </Space>
-            </Card>
+          {/* Quick city tags */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+            <span style={{ color: `${colors.ink}99`, fontWeight: 700, fontSize: 14 }}>{t('home.popular')}</span>
+            {quickCities.map(city => (
+              <button
+                key={city.key}
+                className="nb-tag"
+                onClick={() => handleCitySearch(city.name)}
+                style={{ fontSize: 14 }}
+              >
+                {city.emoji} {city.name}
+              </button>
+            ))}
           </div>
 
-          {/* 错误提示 */}
+          {/* Preference card */}
+          <div
+            className="nb-card"
+            style={{ width: '100%', maxWidth: 560, background: 'rgba(255,255,255,0.9)', padding: 20 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 18 }}>❤️</span>
+              <span style={{ fontWeight: 800, color: colors.ink }}>{t('home.preferenceLabel')}</span>
+            </div>
+            <Input
+              value={preference.preferenceText}
+              onChange={(e) => savePreference({ preferenceText: e.target.value })}
+              placeholder={t('home.preferencePlaceholder')}
+              maxLength={500}
+              className="nb-input"
+              style={{ fontSize: 16, padding: '10px 16px' }}
+            />
+          </div>
+
+          {/* Error */}
           {error && (
-            <div className="animate-slideUp" style={{ width: '100%', maxWidth: 560, marginTop: 24 }}>
-              <Alert
-                message={error}
-                type="error"
-                showIcon
-                closable
-                onClose={() => setError(null)}
-                style={{ borderRadius: 12 }}
-              />
+            <div style={{ width: '100%', maxWidth: 560, marginTop: 24 }}>
+              <Alert message={error} type="error" showIcon closable onClose={() => setError(null)} style={{ borderRadius: 16, border: `3px solid ${colors.ink}` }} />
             </div>
           )}
         </section>
       )}
 
-      {/* 加载状态 - 带动画 */}
+      {/* Loading */}
       {isLoading && (
         <section
-          className="animate-fadeIn"
           style={{
             minHeight: 'calc(100vh - 200px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: `linear-gradient(180deg, ${colors.neutral[50]} 0%, ${colors.primary[50]} 100%)`,
+            background: `linear-gradient(180deg, ${colors.paper} 0%, ${colors.candy.yellow}20 100%)`,
           }}
         >
           <LoadingSpinner
-            message="正在获取应季食材..."
-            subMessage="这可能需要30-60秒"
+            message={t('ingredients.loading')}
+            subMessage={t('ingredients.loadingHint')}
             size="large"
           />
         </section>
       )}
 
-      {/* 搜索结果区域 - 带过渡动画 */}
+      {/* Results */}
       {!isLoading && location && categories.length > 0 && (
-        <div
-          className="animate-fadeIn"
-          style={{
-            maxWidth: 1152,
-            margin: '0 auto',
-            padding: '32px 24px',
-          }}
-        >
-          {/* 位置信息徽章 - 珊瑚橙粉配色 */}
-          <Row justify="center" style={{ marginBottom: 32 }}>
-            <Col>
-              <Card
-                size="small"
-                className="animate-slideDown hover-lift"
-                style={{
-                  background: `linear-gradient(135deg, ${colors.primary[50]} 0%, ${colors.secondary[50]} 100%)`,
-                  borderColor: colors.primary[200],
-                  borderRadius: 24,
-                }}
-                styles={{ body: { padding: '10px 24px' } }}
+        <div style={{ maxWidth: 1152, margin: '0 auto', padding: '32px 24px' }}>
+          {/* Zigzag divider */}
+          <div className="deco-zigzag" style={{ marginBottom: 32 }} />
+
+          {/* Location header */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 16 }}>
+            <div>
+              <div className="nb-badge" style={{ background: colors.candy.green, color: colors.ink, marginBottom: 12 }}>
+                <span>🌿</span>
+                <span>{t('ingredients.badge')}</span>
+              </div>
+              <h2 className="font-display" style={{ margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', color: colors.ink }}>
+                {location.matchedName} · {location.season}
+              </h2>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <span className="nb-tag" style={{ background: colors.ink, color: '#fff', cursor: 'default' }}>
+                📅 {t('common.month', { num: location.month })}
+              </span>
+              <button
+                className="nb-btn-sm"
+                onClick={() => { setLocation(null); setCategories([]); }}
+                style={{ background: '#fff', color: colors.ink, cursor: 'pointer', padding: '6px 16px' }}
               >
-                <Space split={<Divider type="vertical" style={{ borderColor: colors.primary[200] }} />}>
-                  <Space>
-                    <EnvironmentOutlined style={{ color: colors.primary[500] }} />
-                    <Text style={{ color: colors.primary[600], fontWeight: 600 }}>
-                      {location.matchedName}
-                    </Text>
-                  </Space>
-                  <Space>
-                    <CalendarOutlined style={{ color: colors.secondary[500]} } />
-                    <Text style={{ color: colors.secondary[600] }}>
-                      {location.season} · {location.month}月
-                    </Text>
-                  </Space>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+                {t('home.backToSearch')}
+              </button>
+            </div>
+          </div>
 
-          {/* 返回搜索按钮 */}
-          <Row justify="center" style={{ marginBottom: 24 }}>
-            <Button
-              type="text"
-              onClick={() => {
-                setLocation(null);
-                setCategories([]);
-              }}
-              style={{ color: colors.neutral[500] }}
-            >
-              ← 重新搜索其他城市
-            </Button>
-          </Row>
-
-          {/* 食材列表组件 */}
+          {/* Ingredients */}
           <section style={{ marginBottom: 32 }}>
-            <Title
-              level={4}
-              className="animate-slideUp"
-              style={{ color: colors.neutral[800], marginBottom: 16 }}
-            >
-              🥬 当季应季食材
-            </Title>
             <IngredientList
               categories={categories}
               selectedIngredients={selectedIngredients}
@@ -291,61 +224,40 @@ export function NewHome() {
             />
           </section>
 
-          {/* 获取菜谱按钮 - 活力风格 */}
-          <div className="animate-slideUp stagger-4" style={{ textAlign: 'center', marginTop: 40 }}>
-            <Button
-              type="primary"
-              size="large"
+          {/* CTA button */}
+          <div style={{ textAlign: 'center', marginTop: 40 }}>
+            <button
+              className="nb-btn"
               onClick={handleGetRecipes}
-              icon={<SearchOutlined />}
-              className="click-scale"
               style={{
-                height: 56,
-                paddingLeft: 40,
-                paddingRight: 40,
-                borderRadius: 28,
-                fontSize: 18,
-                fontWeight: 600,
-                background: `linear-gradient(135deg, ${colors.primary[400]} 0%, ${colors.secondary[400]} 100%)`,
-                border: 'none',
-                boxShadow: `0 8px 24px ${colors.primary[300]}40`,
+                background: colors.candy.pink,
+                color: '#FFFFFF',
+                padding: '16px 48px',
+                fontSize: 20,
+                cursor: 'pointer',
               }}
             >
               {selectedIngredients.length > 0
-                ? `🍴 根据 ${selectedIngredients.length} 种食材获取菜谱`
-                : '🎲 获取随机菜谱推荐'
+                ? `${t('home.getRecipesCount', { count: selectedIngredients.length })} 🎉`
+                : `${t('home.getRandomRecipes')} 🎲`
               }
-            </Button>
+            </button>
             {selectedIngredients.length === 0 && (
-              <div style={{ marginTop: 12 }}>
-                <Text style={{ color: colors.neutral[500] }}>
-                  未选择食材，将为您随机推荐应季菜谱 ✨
-                </Text>
-              </div>
+              <p style={{ color: `${colors.ink}80`, marginTop: 12, fontWeight: 700 }}>
+                {t('home.noSelectionHint')} ✨
+              </p>
             )}
           </div>
         </div>
       )}
 
-      {/* 空状态 - 仅在有错误且无位置时显示 */}
+      {/* Error empty state */}
       {!isLoading && error && !location && (
-        <section
-          style={{
-            minHeight: 'calc(100vh - 300px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '48px 24px',
-          }}
-        >
+        <section style={{ minHeight: 'calc(100vh - 300px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
           <Empty
             image={<span style={{ fontSize: 72 }}>🌍</span>}
             imageStyle={{ height: 100 }}
-            description={
-              <Text style={{ color: colors.neutral[500] }}>
-                输入城市名称，探索当季应季食材
-              </Text>
-            }
+            description={<span style={{ color: `${colors.ink}80` }}>{t('home.emptyHint')}</span>}
           />
         </section>
       )}

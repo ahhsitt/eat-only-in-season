@@ -1,0 +1,31 @@
+{
+  "categories": {
+    "vegetable": "蔬菜",
+    "meat": "肉类",
+    "seafood": "海鲜",
+    "fruit": "水果",
+    "dairy": "蛋奶",
+    "other": "其他"
+  },
+  "seasons": {
+    "spring": "春季",
+    "summer": "夏季",
+    "autumn": "秋季",
+    "winter": "冬季"
+  },
+  "difficulty": {
+    "easy": "简单",
+    "medium": "中等",
+    "hard": "复杂"
+  },
+  "prompts": {
+    "language_instruction": "所有输出必须使用简体中文。",
+    "ingredient_intro": "以下是当地应季食材推荐：",
+    "recipe_intro": "根据您选择的食材，推荐以下菜谱："
+  },
+  "messages": {
+    "no_ingredients": "暂无应季食材数据",
+    "no_recipes": "暂无推荐菜谱",
+    "loading": "加载中..."
+  }
+}

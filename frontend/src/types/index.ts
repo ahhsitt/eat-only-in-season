@@ -174,8 +174,8 @@ export const ImageStatusNames: Record<ImageStatus, string> = {
 
 // --- 003-flow-redesign-improvements: 新增类型定义 ---
 
-// 食材分类
-export type IngredientCategory = '肉类' | '蔬菜' | '水果' | '海鲜' | '蛋奶' | '其他';
+// 食材分类 (code 值)
+export type IngredientCategory = 'meat' | 'vegetable' | 'fruit' | 'seafood' | 'dairy' | 'other';
 
 // 位置信息
 export interface Location {
@@ -210,8 +210,8 @@ export interface IngredientCategoryGroup {
   ingredients: SeasonalIngredient[];
 }
 
-// 难度等级（中文）
-export type DifficultyLevel = '简单' | '中等' | '复杂';
+// 难度等级 (后端返回翻译后的显示名称)
+export type DifficultyLevel = string;
 
 // 带匹配信息的菜谱
 export interface RecipeWithMatch {

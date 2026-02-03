@@ -4,6 +4,7 @@ import (
 	"github.com/eat-only-in-season/backend/internal/api/handlers"
 	"github.com/eat-only-in-season/backend/internal/api/middleware"
 	"github.com/eat-only-in-season/backend/internal/cache"
+	"github.com/eat-only-in-season/backend/internal/i18n"
 	"github.com/eat-only-in-season/backend/internal/services/ai"
 	"github.com/eat-only-in-season/backend/internal/services/ai/imagegen"
 	"github.com/eat-only-in-season/backend/internal/services/ingredient"
@@ -36,6 +37,7 @@ func SetupRouter() *gin.Engine {
 	// Global middleware
 	router.Use(middleware.CORS())
 	router.Use(middleware.ErrorHandler())
+	router.Use(i18n.Middleware(i18n.DefaultLang()))
 
 	// Initialize handlers
 	cityHandler := handlers.NewCityHandler(cache.DefaultCache)

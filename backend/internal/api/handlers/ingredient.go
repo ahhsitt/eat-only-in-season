@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/eat-only-in-season/backend/internal/cache"
+	"github.com/eat-only-in-season/backend/internal/i18n"
 	"github.com/eat-only-in-season/backend/internal/models"
 	"github.com/eat-only-in-season/backend/internal/services/ingredient"
 	"github.com/gin-gonic/gin"
@@ -45,9 +46,12 @@ func (h *IngredientHandler) GetSeasonalIngredients(c *gin.Context) {
 		return
 	}
 
-	// 生成缓存键：城市+月份
+	// Get language from context (set by i18n middleware)
+	lang := i18n.GetLang(c)
+
+	// 生成缓存键：语言+城市+月份
 	month := time.Now().Month()
-	cacheKey := cache.IngredientsKey(req.City, "", int(month))
+	cacheKey := cache.IngredientsKey(req.City, lang, int(month))
 
 	// 尝试从双层缓存获取
 	if cache.DefaultManager != nil {
@@ -69,7 +73,7 @@ func (h *IngredientHandler) GetSeasonalIngredients(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.GetSeasonalIngredients(c.Request.Context(), req.City)
+	result, err := h.service.GetSeasonalIngredients(c.Request.Context(), req.City, lang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "GENERATION_FAILED",
@@ -111,8 +115,11 @@ func (h *IngredientHandler) GetIngredientDetail(c *gin.Context) {
 		return
 	}
 
-	// 生成缓存键
-	cacheKey := cache.IngredientDetailKey(ingredientID)
+	// Get language from context
+	lang := i18n.GetLang(c)
+
+	// 生成缓存键（包含语言）
+	cacheKey := cache.IngredientDetailKey(ingredientID) + ":" + lang
 
 	// 尝试从双层缓存获取
 	if cache.DefaultManager != nil {
@@ -136,7 +143,7 @@ func (h *IngredientHandler) GetIngredientDetail(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.GetIngredientDetail(c.Request.Context(), ingredientID, ingredientName)
+	result, err := h.service.GetIngredientDetail(c.Request.Context(), ingredientID, ingredientName, lang)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "GENERATION_FAILED",

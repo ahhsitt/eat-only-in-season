@@ -1,9 +1,5 @@
-// components/LoadingSpinner/LoadingSpinner.tsx - Loading state component using Ant Design
-
-import { Spin, Typography } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
+// components/LoadingSpinner/LoadingSpinner.tsx - Neubrutalism v2 loading
+import { useTranslation } from 'react-i18next';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -12,11 +8,13 @@ interface LoadingSpinnerProps {
 }
 
 export function LoadingSpinner({
-  message = '加载中...',
+  message,
   subMessage,
   size = 'default'
 }: LoadingSpinnerProps) {
-  const antIcon = <LoadingOutlined style={{ fontSize: size === 'large' ? 48 : size === 'small' ? 24 : 36 }} spin />;
+  const { t } = useTranslation();
+  const displayMessage = message || t('common.loading');
+  const dotSize = size === 'large' ? 20 : size === 'small' ? 10 : 14;
 
   return (
     <div
@@ -28,12 +26,28 @@ export function LoadingSpinner({
         padding: '64px 0',
       }}
     >
-      <Spin indicator={antIcon} size={size} />
-      <Text style={{ color: '#2D2D2D', marginTop: 16 }}>{message}</Text>
+      {/* Bouncing dots */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            className="animate-bounce-slow"
+            style={{
+              width: dotSize,
+              height: dotSize,
+              borderRadius: '50%',
+              border: '3px solid #1A1A2E',
+              background: ['#FF9F43', '#FF6B9D', '#5DADE2'][i],
+              animationDelay: `${i * 0.15}s`,
+            }}
+          />
+        ))}
+      </div>
+      <p style={{ color: '#1A1A2E', fontWeight: 700, fontSize: 16, margin: 0 }}>{displayMessage}</p>
       {subMessage && (
-        <Text type="secondary" style={{ fontSize: 14, marginTop: 8 }}>
+        <p style={{ fontSize: 14, color: '#6C757D', marginTop: 8, margin: '8px 0 0 0' }}>
           {subMessage}
-        </Text>
+        </p>
       )}
     </div>
   );

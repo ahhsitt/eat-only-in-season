@@ -1,0 +1,211 @@
+/* Neubrutalism v2 - Bold & Playful Utility Classes */
+
+/* ===== Font Classes ===== */
+.font-display {
+  font-family: 'Lilita One', cursive;
+  letter-spacing: 0.02em;
+}
+
+.font-body {
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ===== Neubrutalism Cards ===== */
+.nb-card {
+  border: 4px solid #1A1A2E;
+  border-radius: 20px;
+  box-shadow: 8px 8px 0px #1A1A2E;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nb-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 12px 12px 0px #1A1A2E;
+}
+
+/* ===== Neubrutalism Buttons ===== */
+.nb-btn {
+  border: 4px solid #1A1A2E;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0px #1A1A2E;
+  transition: all 0.15s ease;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nb-btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0px #1A1A2E;
+}
+
+.nb-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0px #1A1A2E;
+}
+
+.nb-btn-sm {
+  border: 3px solid #1A1A2E;
+  border-radius: 12px;
+  box-shadow: 4px 4px 0px #1A1A2E;
+  transition: all 0.15s ease;
+  font-weight: 700;
+}
+
+.nb-btn-sm:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #1A1A2E;
+}
+
+/* ===== Neubrutalism Inputs ===== */
+.nb-input {
+  border: 4px solid #1A1A2E;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0px #1A1A2E;
+  transition: all 0.2s ease;
+}
+
+.nb-input:focus {
+  outline: none;
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0px #1A1A2E;
+}
+
+/* ===== Neubrutalism Tags ===== */
+.nb-tag {
+  border: 3px solid #1A1A2E;
+  border-radius: 50px;
+  box-shadow: 4px 4px 0px #1A1A2E;
+  transition: all 0.15s ease;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 14px;
+  background: white;
+}
+
+.nb-tag:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #1A1A2E;
+}
+
+.nb-tag.selected {
+  background-color: #FFE566;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #1A1A2E;
+}
+
+/* ===== Decorative Shapes ===== */
+.deco-star {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.deco-blob {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.deco-zigzag {
+  background: repeating-linear-gradient(
+    90deg,
+    #1A1A2E 0px,
+    #1A1A2E 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  height: 8px;
+  width: 100%;
+}
+
+/* ===== Squiggly underline ===== */
+.squiggle {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #FF6B9D;
+  text-underline-offset: 4px;
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: #FFE566;
+  color: #1A1A2E;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF9E3;
+  border-left: 4px solid #1A1A2E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFE566;
+  border: 4px solid #1A1A2E;
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF9F43;
+}
+
+/* ===== Neubrutalism Step Badge ===== */
+.nb-step-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 3px solid #1A1A2E;
+  box-shadow: 3px 3px 0px #1A1A2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* ===== Badge Pill ===== */
+.nb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 50px;
+  border: 3px solid #1A1A2E;
+  box-shadow: 4px 4px 0px #1A1A2E;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ===== Responsive helpers ===== */
+@media (max-width: 768px) {
+  .nb-card {
+    border-width: 3px;
+    box-shadow: 6px 6px 0px #1A1A2E;
+  }
+  .nb-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0px #1A1A2E;
+  }
+  .nb-btn {
+    border-width: 3px;
+    box-shadow: 4px 4px 0px #1A1A2E;
+  }
+  .nb-input {
+    border-width: 3px;
+    box-shadow: 4px 4px 0px #1A1A2E;
+  }
+  .nb-tag {
+    border-width: 2px;
+    box-shadow: 3px 3px 0px #1A1A2E;
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+  .deco-hidden-mobile {
+    display: none !important;
+  }
+}
